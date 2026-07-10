@@ -1,0 +1,11 @@
+{
+  "framework": "vite",
+  "buildCommand": "cd naatu-shop && npm install && npm run build",
+  "outputDirectory": "naatu-shop/dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

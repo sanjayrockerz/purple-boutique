@@ -2,7 +2,7 @@
 import {
   BarChart2, Trash2, Edit2, List, ShoppingCart, LayoutDashboard,
   Box, AlertCircle, ArrowUp, ArrowDown, Power, Download, TrendingUp,
-  Package, IndianRupee, Search, RefreshCw, ShieldCheck, ShieldOff, Trophy,
+  Package, DollarSign, Search, RefreshCw, ShieldCheck, ShieldOff, Trophy,
   MessageCircle, ChevronDown,
 } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
@@ -12,6 +12,7 @@ import { useAuthStore, useProductStore, type Product } from '../store/store'
 import { useLangStore } from '../store/langStore'
 import { uploadProductImage } from '../lib/storage'
 import { formatCurrency, normalizeOrderMode, normalizeUnitType, toNumber, type UnitType } from '../lib/retail'
+import { buildProfessionalWhatsAppMessage } from '../lib/whatsappMessage'
 import { createVariant, updateVariant, deleteVariant, setDefaultVariant, type ProductVariant } from '../services/variantService'
 import { useVariantStore } from '../store/store'
 import Pos from './Pos'
@@ -61,6 +62,30 @@ const parseOrderItems = (items: unknown): Record<string, unknown>[] => {
   if (Array.isArray(items)) return items.filter((e): e is Record<string, unknown> => typeof e === 'object' && e !== null)
   if (typeof items === 'string') { try { const p = JSON.parse(items); return Array.isArray(p) ? p : [] } catch { return [] } }
   return []
+}
+
+const getWhatsAppInvoiceMessage = (order: DashboardOrder) => {
+  const items = parseOrderItems(order.items).map((item) => ({
+    name: String(item.name || item.product_name || 'Product'),
+    qty: toNumber(item.quantity ?? item.qty, 0),
+    unit: String(item.unit || item.unit_label || 'piece'),
+    unitType: normalizeUnitType(item.unit_type || item.unitType || 'unit'),
+    rate: toNumber(item.base_price ?? item.price ?? item.offer_price, 0),
+    lineTotal: toNumber(item.line_total ?? item.lineTotal, 0),
+  }))
+
+  return buildProfessionalWhatsAppMessage({
+    customerName: order.customer_name,
+    phone: order.phone,
+    invoiceNumber: order.invoice_no || order.id,
+    invoiceDate: order.created_at,
+    paymentMode: 'POS',
+    items,
+    subtotal: toNumber(order.total, 0) - toNumber(order.delivery_charge, 0) + toNumber(order.discount_amount, 0),
+    couponDiscount: toNumber(order.discount_amount, 0),
+    shipping: toNumber(order.delivery_charge, 0),
+    total: toNumber(order.total, 0),
+  })
 }
 
 const emptyForm = {
@@ -143,6 +168,7 @@ export default function Dashboard() {
 
   // WA detail expansion
   const [waExpandedId, setWaExpandedId] = useState<string | null>(null)
+  const [billingExpandedId, setBillingExpandedId] = useState<string | null>(null)
 
   // Search & date filter
   const [search, setSearch] = useState({ invoiceNo: '', phone: '', customerName: '', dateFrom: '', dateTo: '' })
@@ -366,8 +392,8 @@ export default function Dashboard() {
       const k = toLocalMonthKey(o.created_at)
       monthlyRevenueMap.set(k, (monthlyRevenueMap.get(k) || 0) + toNumber(o.total, 0))
     })
-    const monthlyTrend = Array.from({ length: 6 }, (_, i) => {
-      const d = new Date(); d.setMonth(d.getMonth() - (5 - i))
+    const monthlyTrend = Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(); d.setMonth(d.getMonth() - (11 - i))
       const k = toLocalMonthKey(d)
       return { key: k, month: d.toLocaleDateString('en-IN', { month: 'short' }), revenue: monthlyRevenueMap.get(k) || 0 }
     })
@@ -1028,7 +1054,7 @@ export default function Dashboard() {
       {/* Sidebar */}
       <aside
         className={[
-          'w-full bg-maroon-dark text-white border-b lg:border-b-0 lg:border-r border-maroon-dark flex flex-col shrink-0',
+          'w-full bg-primary text-white border-b lg:border-b-0 lg:border-r border-primary flex flex-col shrink-0',
           'transition-[width] duration-300 ease-in-out overflow-hidden',
           sidebarCollapsed ? 'lg:w-[88px]' : 'lg:w-[260px]',
         ].join(' ')}
@@ -1036,10 +1062,10 @@ export default function Dashboard() {
         {/* Desktop brand header */}
         <div className={`hidden lg:flex items-center relative transition-all duration-300 ${sidebarCollapsed ? 'justify-center pt-6 pb-5 px-2' : 'px-5 py-5'}`}>
           <div className={`flex items-center gap-3 min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'opacity-100 flex-1'}`}>
-            <div className="flex items-center justify-center shrink-0 w-12 h-12 rounded-xl bg-white shadow-[0_4px_12px_rgba(17,24,39,0.10)] overflow-hidden">
-              <img src="/zera-logo.png" alt="Logo" className="w-full h-full object-cover scale-[1.8]" />
+            <div className="flex items-center justify-center shrink-0 w-12 h-12 rounded-xl bg-white shadow-[0_4px_12px_rgba(17,24,39,0.10)] overflow-hidden rounded-full">
+              <img src="/Purple boutique logo.jpeg" alt="Purple Boutique Logo" className="w-full h-full object-cover" />
             </div>
-            <h1 className="text-[20px] font-black text-white truncate tracking-tight">ZERA</h1>
+            <h1 className="text-[20px] font-black text-white truncate tracking-tight">Purple Boutique</h1>
           </div>
           <button
             type="button"
@@ -1054,10 +1080,10 @@ export default function Dashboard() {
         {/* Mobile mini-header */}
         <div className="flex lg:hidden items-center justify-between px-4 py-4 border-b border-white/10">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shrink-0 overflow-hidden shadow-sm">
-              <img src="/zera-logo.png" alt="Logo" className="w-full h-full object-cover scale-[1.8]" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shrink-0 overflow-hidden shadow-sm rounded-full">
+              <img src="/Purple boutique logo.jpeg" alt="Purple Boutique Logo" className="w-full h-full object-cover" />
             </div>
-            <span className="text-[15px] font-black text-white truncate">ZERA</span>
+            <span className="text-[15px] font-black text-white truncate">Purple Boutique</span>
           </div>
         </div>
         {/* Nav */}
@@ -1076,7 +1102,7 @@ export default function Dashboard() {
                 sidebarCollapsed ? 'lg:w-[48px] lg:justify-center mx-auto' : 'lg:w-full lg:px-4',
                 'px-0 py-1 lg:py-0',
                 'rounded-xl font-medium text-[11px] lg:text-[14px] transition-all overflow-hidden',
-                tab === item.id ? 'bg-white text-maroon-dark shadow-sm' : 'text-white/70 hover:bg-white/10 hover:text-white',
+                tab === item.id ? 'bg-white text-primary shadow-sm' : 'text-white/70 hover:bg-white/10 hover:text-white',
               ].join(' ')}
             >
               <span className="shrink-0">{item.icon}</span>
@@ -1087,7 +1113,9 @@ export default function Dashboard() {
           ))}
           
           <button
-            onClick={() => {/* logout logic later */}}
+            onClick={() => {
+              useAuthStore.getState().logout()
+            }}
             className={[
               'shrink-0 flex flex-col lg:flex-row items-center justify-center lg:justify-start',
               'gap-1 lg:gap-3',
@@ -1113,7 +1141,7 @@ export default function Dashboard() {
         {tab === 'overview' && (() => {
           const latestPOS = searchResults.slice(0, 10)
           return (
-          <div className="space-y-6 rounded-[28px] bg-maroon-dark p-5 sm:p-6 lg:p-7 shadow-2xl border border-white/10 text-white">
+          <div className="space-y-6 rounded-[28px] bg-primary p-5 sm:p-6 lg:p-7 shadow-2xl border border-white/10 text-white">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-xl font-black text-[#2C392A]">{l('Analytics Dashboard', 'à®ªà®•à¯à®ªà¯à®ªà®¾à®¯à¯à®µà¯ à®¤à®Ÿà¯à®Ÿà¯')}</h2>
               <div className="flex items-center gap-2">
@@ -1145,11 +1173,11 @@ export default function Dashboard() {
             {/* Revenue KPIs - 5 cards */}
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
               {[
-                { label: l('Total Revenue', 'à®®à¯Šà®¤à¯à®¤ à®µà®°à¯à®µà®¾à®¯à¯'),    value: formatCurrency(analytics.totalCompletedRevenue), from: 'from-emerald-50 via-emerald-50/80 to-teal-50', iconBg: 'from-emerald-400 to-teal-500', icon: <IndianRupee size={16} /> },
-                { label: l("Today's Sales",  'à®‡à®©à¯à®±à¯ˆà®¯ à®µà®¿à®±à¯à®ªà®©à¯ˆ'),  value: formatCurrency(analytics.todaySales),            from: 'from-blue-50 via-blue-50/80 to-indigo-50', iconBg: 'from-blue-400 to-indigo-500', icon: <TrendingUp size={16} /> },
-                { label: l('Offline Revenue', 'à®†à®ƒà®ªà¯à®²à¯ˆà®©à¯ à®µà®°à¯à®µà®¾à®¯à¯'), value: formatCurrency(analytics.posRevenue),           from: 'from-orange-50 via-orange-50/80 to-amber-50', iconBg: 'from-orange-400 to-amber-500', icon: <IndianRupee size={16} /> },
-                { label: l('Online Revenue',  'à®†à®©à¯à®²à¯ˆà®©à¯ à®µà®°à¯à®µà®¾à®¯à¯'),  value: formatCurrency(analytics.onlinePosRevenue),     from: 'from-cyan-50 via-cyan-50/80 to-sky-50', iconBg: 'from-cyan-400 to-sky-500', icon: <IndianRupee size={16} /> },
-                { label: l('Manual Revenue',  'à®•à¯ˆà®®à¯à®±à¯ˆ à®µà®°à¯à®µà®¾à®¯à¯'),   value: formatCurrency(analytics.manualRevenue),        from: 'from-violet-50 via-violet-50/80 to-purple-50', iconBg: 'from-violet-400 to-purple-500', icon: <ShoppingCart size={16} /> },
+                { label: l('Total Revenue', 'மொத்த வருவாய்'),    value: formatCurrency(analytics.totalCompletedRevenue), from: 'from-emerald-50 via-emerald-50/80 to-teal-50', iconBg: 'from-emerald-400 to-teal-500', icon: <DollarSign size={16} /> },
+                { label: l("Today's Sales",  'இன்றைய விற்பனை'),  value: formatCurrency(analytics.todaySales),            from: 'from-blue-50 via-blue-50/80 to-indigo-50', iconBg: 'from-blue-400 to-indigo-500', icon: <TrendingUp size={16} /> },
+                { label: l('Offline Revenue', 'ஆஃப்லைன் வருவாய்'), value: formatCurrency(analytics.posRevenue),           from: 'from-orange-50 via-orange-50/80 to-amber-50', iconBg: 'from-orange-400 to-amber-500', icon: <DollarSign size={16} /> },
+                { label: l('Online Revenue',  'ஆன்லைன் வருவாய்'),  value: formatCurrency(analytics.onlinePosRevenue),     from: 'from-cyan-50 via-cyan-50/80 to-sky-50', iconBg: 'from-cyan-400 to-sky-500', icon: <DollarSign size={16} /> },
+                { label: l('Manual Revenue',  'கைமுறை வருவாய்'),   value: formatCurrency(analytics.manualRevenue),        from: 'from-violet-50 via-violet-50/80 to-purple-50', iconBg: 'from-violet-400 to-purple-500', icon: <ShoppingCart size={16} /> },
               ].map((card, i) => (
                 <div key={i} className={`bg-gradient-to-br ${card.from} rounded-2xl border border-white/40 p-4 shadow-sm backdrop-blur-sm`}>
                   <div className="flex items-center justify-between gap-1 mb-2">
@@ -1683,9 +1711,9 @@ export default function Dashboard() {
                   { id: 'coupons' as const,    label: 'COUPONS' },
                 ]).map(({ id, label }) => (
                   <button key={id} onClick={() => setPosAnalyticsTab(id as PosAnalyticsTab)}
-                    className={`pb-2 md:pb-4 text-left text-[13px] font-bold tracking-wide transition-colors relative ${posAnalyticsTab === id ? 'text-maroon-dark' : 'text-[#6B7280] hover:text-[#111111]'}`}>
+                    className={`pb-2 md:pb-4 text-left text-[13px] font-bold tracking-wide transition-colors relative ${posAnalyticsTab === id ? 'text-primary' : 'text-[#6B7280] hover:text-[#111111]'}`}>
                     {label}
-                    {posAnalyticsTab === id && <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-maroon-dark rounded-t-md" />}
+                    {posAnalyticsTab === id && <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-primary rounded-t-md" />}
                   </button>
                 ))}
               </div>
@@ -1696,7 +1724,7 @@ export default function Dashboard() {
                   <span className="text-[10px] font-bold uppercase text-[#6B7280] ml-1 mr-1">Period:</span>
                   {(['all', 'today', 'week', 'month', 'year'] as const).map(preset => (
                     <button key={preset} type="button" onClick={() => applyAnalyticsPreset(preset)}
-                      className={`px-4 py-1.5 rounded-full text-[11px] font-bold uppercase transition-all ${analyticsDatePreset === preset ? 'bg-maroon-dark text-white shadow-sm' : 'text-[#6B7280] hover:text-[#111111]'}`}>
+                      className={`px-4 py-1.5 rounded-full text-[11px] font-bold uppercase transition-all ${analyticsDatePreset === preset ? 'bg-primary text-white shadow-sm' : 'text-[#6B7280] hover:text-[#111111]'}`}>
                       {preset === 'all' ? 'All Time' : preset === 'today' ? 'Today' : preset === 'week' ? 'This Week' : preset === 'month' ? 'This Month' : 'This Year'}
                     </button>
                   ))}
@@ -1719,10 +1747,10 @@ export default function Dashboard() {
               <div className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                   {[
-                    { label: 'TOTAL REVENUE',    helper: 'POS + manual combined', value: formatCurrency(analytics.totalCompletedRevenue), icon: <IndianRupee size={16} />, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+                    { label: 'TOTAL REVENUE',    helper: 'POS + manual combined', value: formatCurrency(analytics.totalCompletedRevenue), icon: <DollarSign size={16} />, color: 'text-emerald-500', bg: 'bg-emerald-50' },
                     { label: 'COMPLETED BILLS',  helper: 'POS + manual bills',    value: analytics.completedOrders,                       icon: <Trophy size={16} />,      color: 'text-emerald-500', bg: 'bg-emerald-50' },
-                    { label: 'OFFLINE BILLS',    helper: 'Walk-in POS sales',     value: formatCurrency(analytics.posRevenue),            icon: <IndianRupee size={16} />, color: 'text-cyan-500',    bg: 'bg-cyan-50' },
-                    { label: 'ONLINE BILLS',     helper: 'Online POS sales',      value: formatCurrency(analytics.onlinePosRevenue),      icon: <IndianRupee size={16} />, color: 'text-indigo-500',  bg: 'bg-indigo-50' },
+                    { label: 'OFFLINE BILLS',    helper: 'Walk-in POS sales',     value: formatCurrency(analytics.posRevenue),            icon: <DollarSign size={16} />, color: 'text-cyan-500',    bg: 'bg-cyan-50' },
+                    { label: 'ONLINE BILLS',     helper: 'Online POS sales',      value: formatCurrency(analytics.onlinePosRevenue),      icon: <DollarSign size={16} />, color: 'text-indigo-500',  bg: 'bg-indigo-50' },
                   ].map((card, index) => (
                     <div key={index} className="bg-white rounded-card border border-borderLight p-5 shadow-soft">
                       <div className="flex items-start justify-between gap-2 mb-4">
@@ -1742,7 +1770,7 @@ export default function Dashboard() {
                     { label: 'TOTAL OFFLINE BILLS', helper: 'Walk-in POS orders',    value: analytics.completedOrders,                       icon: <LayoutDashboard size={16} />, color: 'text-red-500',    bg: 'bg-red-50' },
                     { label: 'TOTAL ONLINE BILLS',  helper: 'Online channel orders', value: 0,                                               icon: <Box size={16} />,             color: 'text-blue-500',   bg: 'bg-blue-50' },
                     { label: 'TOTAL ITEMS SOLD',    helper: 'From completed bills',  value: Math.round(analytics.totalProductsSold),         icon: <Box size={16} />,             color: 'text-purple-500', bg: 'bg-purple-50' },
-                    { label: 'AVG ORDER VALUE',     helper: 'Per completed order',   value: formatCurrency(analytics.completedOrders > 0 ? analytics.totalCompletedRevenue / analytics.completedOrders : 0), icon: <IndianRupee size={16} />, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+                    { label: 'AVG ORDER VALUE',     helper: 'Per completed order',   value: formatCurrency(analytics.completedOrders > 0 ? analytics.totalCompletedRevenue / analytics.completedOrders : 0), icon: <DollarSign size={16} />, color: 'text-emerald-500', bg: 'bg-emerald-50' },
                     { label: 'TOP PRODUCT',         helper: 'Most sold item',        value: analytics.bestProduct || '-',                    icon: <Trophy size={16} />,          color: 'text-pink-500',   bg: 'bg-pink-50' },
                   ].map((card, index) => (
                     <div key={index} className="bg-white rounded-card border border-borderLight p-5 shadow-soft">
@@ -1765,16 +1793,16 @@ export default function Dashboard() {
                     </div>
                     <div className="flex items-end gap-4 mb-4">
                       <span className="text-[24px] font-bold text-[#111111]">{formatCurrency(analytics.totalCompletedRevenue)}</span>
-                      <span className="text-[12px] font-bold text-maroon-dark bg-red-50 px-2 py-1 rounded-md mb-1">Avg {formatCurrency(analytics.monthlyRevenue || 0)}/mo</span>
+                      <span className="text-[12px] font-bold text-primary bg-red-50 px-2 py-1 rounded-md mb-1">Avg {formatCurrency(analytics.monthlyRevenue || 0)}/mo</span>
                     </div>
-                    <div className="h-64">
+                    <div className="h-52">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={analytics.monthlyTrend}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-                          <XAxis dataKey="month" tick={{ fill: '#6B7280', fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                          <XAxis dataKey="month" tick={{ fill: '#6B7280', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
                           <YAxis hide />
                           <Tooltip cursor={{ fill: '#F9FAFB' }} formatter={(value) => formatCurrency(toNumber(value as number | string, 0))} />
-                          <Bar dataKey="revenue" fill="#8B1C31" radius={[4, 4, 0, 0]} barSize={24} />
+                          <Bar dataKey="revenue" fill="#7e22ce" radius={[4, 4, 0, 0]} barSize={20} />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
@@ -1785,11 +1813,11 @@ export default function Dashboard() {
                       <div className="space-y-4">
                         <div>
                           <div className="flex justify-between text-[12px] font-bold mb-2">
-                            <span className="text-maroon-dark uppercase">Offline</span>
+                            <span className="text-primary uppercase">Offline</span>
                             <span className="text-[#111111]">{analytics.completedOrders}</span>
                           </div>
                           <div className="w-full bg-[#F3F4F6] rounded-full h-2.5">
-                            <div className="bg-maroon-dark h-2.5 rounded-full" style={{ width: '100%' }}></div>
+                            <div className="bg-primary h-2.5 rounded-full" style={{ width: '100%' }}></div>
                           </div>
                         </div>
                         <div>
@@ -1814,7 +1842,7 @@ export default function Dashboard() {
                               <span className="font-bold text-[#111111] truncate max-w-[120px]">{p.name}</span>
                             </div>
                             <div className="flex items-center gap-4">
-                              <span className="font-bold text-maroon-dark">{formatCurrency(p.revenue)}</span>
+                              <span className="font-bold text-primary">{formatCurrency(p.revenue)}</span>
                               <span className="text-[#6B7280] text-[11px] w-8 text-right">{Math.round(p.qty)} pcs</span>
                             </div>
                           </div>
@@ -1829,13 +1857,20 @@ export default function Dashboard() {
                     <div className="flex items-center justify-between gap-3 mb-6">
                       <div>
                         <h3 className="text-[16px] font-bold text-[#111111]">Revenue Trend This Week</h3>
-                        <p className="mt-1 text-[12px] text-[#6B7280]">Monday to Sunday sales view for the current week.</p>
+                        <p className="mt-1 text-[12px] text-[#6B7280]">{
+                          (() => {
+                            const now = new Date();
+                            const start = new Date(now.getFullYear(), 0, 1);
+                            const weekNo = Math.ceil((((now.getTime() - start.getTime()) / 86400000) + start.getDay() + 1) / 7);
+                            return `Week ${weekNo} of ${now.getFullYear()}`;
+                          })()
+                        }</p>
                       </div>
-                      <span className="rounded-full bg-[#F7F6F2] px-3 py-1 text-[11px] font-bold text-[#8B2332]">
+                      <span className="rounded-full bg-[#F7F6F2] px-3 py-1 text-[11px] font-bold text-[#7e22ce]">
                         Today: {formatCurrency(analytics.todaySales)}
                       </span>
                     </div>
-                    <div className="h-64">
+                    <div className="h-48">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={analytics.weeklySales}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
@@ -1849,7 +1884,7 @@ export default function Dashboard() {
                               return point ? `${point.day || 'Day'} • ${point.date || ''}` : 'Weekly Revenue'
                             }}
                           />
-                          <Bar dataKey="revenue" fill="#2C392A" radius={[4, 4, 0, 0]} barSize={28} />
+                          <Bar dataKey="revenue" fill="#2C392A" radius={[4, 4, 0, 0]} barSize={24} />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
@@ -1885,7 +1920,7 @@ export default function Dashboard() {
                 {/* Key metrics row */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[
-                    { label: "Today's Revenue", value: formatCurrency(analytics.todaySales), icon: <IndianRupee size={18} />, from: 'from-emerald-500 to-teal-600', to: 'via-emerald-600/40' },
+                    { label: "Today's Revenue", value: formatCurrency(analytics.todaySales), icon: <DollarSign size={18} />, from: 'from-emerald-500 to-teal-600', to: 'via-emerald-600/40' },
                     { label: 'Orders', value: String(analytics.todayCompletedOrdersCount), icon: <ShoppingCart size={18} />, from: 'from-blue-500 to-indigo-600', to: 'via-indigo-600/40' },
                     { label: 'Items Sold', value: String(Math.round(analytics.todayItemsSold)), icon: <Package size={18} />, from: 'from-violet-500 to-purple-600', to: 'via-purple-600/40' },
                     { label: 'Avg Order', value: formatCurrency(analytics.todayAvgOrderValue), icon: <TrendingUp size={18} />, from: 'from-amber-500 to-orange-600', to: 'via-orange-600/40' },
@@ -1997,7 +2032,7 @@ export default function Dashboard() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[
                     { label: 'Total Products Sold', value: String(Math.round(analytics.totalProductsSold)), icon: <Package size={18} />, from: 'from-emerald-500 to-teal-600' },
-                    { label: 'Total Revenue', value: formatCurrency(analytics.totalCompletedRevenue), icon: <IndianRupee size={18} />, from: 'from-blue-500 to-indigo-600' },
+                    { label: 'Total Revenue', value: formatCurrency(analytics.totalCompletedRevenue), icon: <DollarSign size={18} />, from: 'from-blue-500 to-indigo-600' },
                     { label: 'Avg Items / Bill', value: analytics.avgItemsPerBill.toFixed(1), icon: <ShoppingCart size={18} />, from: 'from-violet-500 to-purple-600' },
                     { label: 'Top Product', value: analytics.bestProduct.length > 15 ? analytics.bestProduct.slice(0, 15) + '...' : analytics.bestProduct, icon: <Trophy size={18} />, from: 'from-amber-500 to-orange-600' },
                   ].map((card, i) => (
@@ -2184,7 +2219,7 @@ export default function Dashboard() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[
                     { label: 'Coupons Used', value: String(analytics.totalCouponOrders), icon: <ShoppingCart size={18} />, from: 'from-emerald-500 to-teal-600' },
-                    { label: 'Total Discounts Given', value: formatCurrency(analytics.totalCouponDiscounts), icon: <IndianRupee size={18} />, from: 'from-blue-500 to-indigo-600' },
+                    { label: 'Total Discounts Given', value: formatCurrency(analytics.totalCouponDiscounts), icon: <DollarSign size={18} />, from: 'from-blue-500 to-indigo-600' },
                     { label: 'Usage Rate', value: `${analytics.couponUsageRate.toFixed(1)}%`, icon: <TrendingUp size={18} />, from: 'from-violet-500 to-purple-600' },
                     { label: 'Unique Coupons', value: String(analytics.topCoupons.length), icon: <Trophy size={18} />, from: 'from-amber-500 to-orange-600' },
                   ].map((card, i) => (
@@ -2354,38 +2389,38 @@ export default function Dashboard() {
                 <div className="flex flex-wrap gap-2 items-center">
                   {(['today', 'week', 'month', 'custom'] as const).map(preset => (
                     <button key={preset} type="button" onClick={() => applyDatePreset(preset)}
-                      className={`min-h-[44px] px-3 py-1.5 rounded-xl text-[12px] font-black transition-colors ${datePreset === preset ? 'bg-[#8B2332] text-white shadow-sm' : 'bg-[#F7F6F2] text-[#5F6D59] hover:bg-[#EAD7B7]/40'}`}>
+                      className={`min-h-[44px] px-3 py-1.5 rounded-xl text-[12px] font-black transition-colors ${datePreset === preset ? 'bg-[#7e22ce] text-white shadow-sm' : 'bg-[#F7F6F2] text-[#5F6D59] hover:bg-[#EAD7B7]/40'}`}>
                       {preset === 'today' ? l('Today','à®‡à®©à¯à®±à¯') : preset === 'week' ? l('This Week','à®‡à®¨à¯à®¤ à®µà®¾à®°à®®à¯') : preset === 'month' ? l('This Month','à®‡à®¨à¯à®¤ à®®à®¾à®¤à®®à¯') : l('Custom Range','à®¤à¯‡à®°à¯à®µà¯')}
                     </button>
                   ))}
                   {(search.dateFrom || search.dateTo || datePreset) && (
                     <button type="button" onClick={() => { setDatePreset(''); setSearch(s => ({ ...s, dateFrom: '', dateTo: '' })) }}
-                      className="min-h-[44px] px-3 py-1.5 rounded-xl text-[12px] font-black text-[#8B2332] hover:bg-[#8B2332]/5">{l('Clear Dates', 'தேதி அழி')}</button>
+                      className="min-h-[44px] px-3 py-1.5 rounded-xl text-[12px] font-black text-[#7e22ce] hover:bg-[#7e22ce]/5">{l('Clear Dates', 'தேதி அழி')}</button>
                   )}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  <input className="min-h-[48px] rounded-xl bg-[#F7F6F2] px-3 py-2.5 text-[16px] md:text-[13px] font-semibold text-[#2C392A] placeholder:text-[#8A9384] focus:outline-none focus:ring-2 focus:ring-[#8B2332]/15" placeholder={l('Invoice / Bill No', 'பில் எண்')}
+                  <input className="min-h-[48px] rounded-xl bg-[#F7F6F2] px-3 py-2.5 text-[16px] md:text-[13px] font-semibold text-[#2C392A] placeholder:text-[#8A9384] focus:outline-none focus:ring-2 focus:ring-[#7e22ce]/15" placeholder={l('Invoice / Bill No', 'பில் எண்')}
                     value={search.invoiceNo} onChange={e => setSearch(s => ({ ...s, invoiceNo: e.target.value }))} />
-                  <input className="min-h-[48px] rounded-xl bg-[#F7F6F2] px-3 py-2.5 text-[16px] md:text-[13px] font-semibold text-[#2C392A] placeholder:text-[#8A9384] focus:outline-none focus:ring-2 focus:ring-[#8B2332]/15" placeholder={l('Customer Name', 'வாடிக்கையாளர் பெயர்')}
+                  <input className="min-h-[48px] rounded-xl bg-[#F7F6F2] px-3 py-2.5 text-[16px] md:text-[13px] font-semibold text-[#2C392A] placeholder:text-[#8A9384] focus:outline-none focus:ring-2 focus:ring-[#7e22ce]/15" placeholder={l('Customer Name', 'வாடிக்கையாளர் பெயர்')}
                     value={search.customerName} onChange={e => setSearch(s => ({ ...s, customerName: e.target.value }))} />
-                  <input className="min-h-[48px] rounded-xl bg-[#F7F6F2] px-3 py-2.5 text-[16px] md:text-[13px] font-semibold text-[#2C392A] placeholder:text-[#8A9384] focus:outline-none focus:ring-2 focus:ring-[#8B2332]/15" placeholder={l('Mobile Number', 'மொபைல் எண்')}
+                  <input className="min-h-[48px] rounded-xl bg-[#F7F6F2] px-3 py-2.5 text-[16px] md:text-[13px] font-semibold text-[#2C392A] placeholder:text-[#8A9384] focus:outline-none focus:ring-2 focus:ring-[#7e22ce]/15" placeholder={l('Mobile Number', 'மொபைல் எண்')}
                     value={search.phone} onChange={e => setSearch(s => ({ ...s, phone: e.target.value }))} />
                   {datePreset === 'custom' ? (
                     <>
-                      <input type="date" className="min-h-[48px] rounded-xl bg-[#F7F6F2] px-3 py-2.5 text-[16px] md:text-[13px] font-semibold text-[#2C392A] focus:outline-none focus:ring-2 focus:ring-[#8B2332]/15"
+                      <input type="date" className="min-h-[48px] rounded-xl bg-[#F7F6F2] px-3 py-2.5 text-[16px] md:text-[13px] font-semibold text-[#2C392A] focus:outline-none focus:ring-2 focus:ring-[#7e22ce]/15"
                         value={search.dateFrom} onChange={e => setSearch(s => ({ ...s, dateFrom: e.target.value }))} />
-                      <input type="date" className="min-h-[48px] rounded-xl bg-[#F7F6F2] px-3 py-2.5 text-[16px] md:text-[13px] font-semibold text-[#2C392A] focus:outline-none focus:ring-2 focus:ring-[#8B2332]/15"
+                      <input type="date" className="min-h-[48px] rounded-xl bg-[#F7F6F2] px-3 py-2.5 text-[16px] md:text-[13px] font-semibold text-[#2C392A] focus:outline-none focus:ring-2 focus:ring-[#7e22ce]/15"
                         value={search.dateTo} onChange={e => setSearch(s => ({ ...s, dateTo: e.target.value }))} />
                     </>
                   ) : (
                     <button type="submit" disabled={searchLoading}
-                      className="sm:col-span-2 min-h-[48px] flex items-center justify-center gap-2 rounded-xl bg-[#8B2332] py-2.5 text-[13px] font-bold text-white shadow-sm transition-colors hover:bg-[#6b1a25] disabled:opacity-60">
+                      className="sm:col-span-2 min-h-[48px] flex items-center justify-center gap-2 rounded-xl bg-[#7e22ce] py-2.5 text-[13px] font-bold text-white shadow-sm transition-colors hover:bg-[#5b189e] disabled:opacity-60">
                       <Search size={14} /> {searchLoading ? l('Searching...','தேடுகிறது...') : l('Search Bills','தேடு')}
                     </button>
                   )}
                   {datePreset === 'custom' && (
                     <button type="submit" disabled={searchLoading}
-                      className="sm:col-span-2 lg:col-span-4 min-h-[48px] flex items-center justify-center gap-2 rounded-xl bg-[#8B2332] py-2.5 text-[13px] font-bold text-white shadow-sm transition-colors hover:bg-[#6b1a25] disabled:opacity-60">
+                      className="sm:col-span-2 lg:col-span-4 min-h-[48px] flex items-center justify-center gap-2 rounded-xl bg-[#7e22ce] py-2.5 text-[13px] font-bold text-white shadow-sm transition-colors hover:bg-[#5b189e] disabled:opacity-60">
                       <Search size={14} /> {searchLoading ? l('Searching...','தேடுகிறது...') : l('Search Bills','தேடு')}
                     </button>
                   )}
@@ -2395,7 +2430,7 @@ export default function Dashboard() {
                 <p className="text-[11px] font-semibold text-[#5F6D59]">{filteredSearchResults.length} {l('result(s)', 'முடிவுகள்')}</p>
                 {filteredSearchResults.length > 0 && (
                   <button onClick={() => exportCSV(filteredSearchResults)}
-                    className="flex items-center gap-1 text-[11px] font-bold text-[#8B2332] hover:underline">
+                    className="flex items-center gap-1 text-[11px] font-bold text-[#7e22ce] hover:underline">
                     <Download size={11} /> Export CSV
                   </button>
                 )}
@@ -2445,32 +2480,98 @@ export default function Dashboard() {
                           <option value="pending">{l('Pending', 'à®¨à®¿à®²à¯à®µà¯ˆ')}</option>
                           <option value="completed">{l('Completed', 'à®®à¯à®Ÿà®¿à®¨à¯à®¤à®¤à¯')}</option>
                         </select>
-                        <button onClick={() => void deleteOrder(o.id, o.invoice_no)} className="h-11 w-11 rounded-xl border border-[#EAD7B7]/60 text-[#8B2332] transition-colors hover:bg-[#8B2332]/5" title="Delete Order">
+                        <button type="button" onClick={() => setBillingExpandedId(billingExpandedId === o.id ? null : o.id)}
+                          className={`h-11 px-3 rounded-xl text-[11px] font-black transition-colors whitespace-nowrap ${billingExpandedId === o.id ? 'bg-primary text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}>
+                          {billingExpandedId === o.id ? 'Close' : 'View'}
+                        </button>
+                        <button onClick={() => void deleteOrder(o.id, o.invoice_no)} className="h-11 w-11 rounded-xl border border-[#EAD7B7]/60 text-[#7e22ce] transition-colors hover:bg-[#7e22ce]/5" title="Delete Order">
                           <Trash2 size={14} className="mx-auto" />
                         </button>
                       </div>
+                      {billingExpandedId === o.id && (
+                        <div className="rounded-xl bg-purple-50/40 border border-purple-100 p-3 space-y-3">
+                          <div className="flex flex-wrap gap-3 text-[12px]">
+                            <div><span className="font-black text-[#5F6D59]">Name: </span><span className="font-bold text-[#2C392A]">{o.customer_name || '-'}</span></div>
+                            <div><span className="font-black text-[#5F6D59]">Phone: </span><span className="font-bold text-[#2C392A]">{o.phone || '-'}</span></div>
+                            <div className="flex-1"><span className="font-black text-[#5F6D59]">Address: </span><span className="text-[#2C392A]">{o.address || '-'}</span></div>
+                          </div>
+                          {(() => {
+                            const billItems = parseOrderItems(o.items)
+                            return billItems.length > 0 ? (
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-[12px] bg-white rounded-lg overflow-hidden border border-purple-100">
+                                  <thead className="bg-[#F7F6F2]">
+                                    <tr className="text-left text-[#5F6D59] font-black text-[10px] uppercase tracking-wider">
+                                      <th className="px-2 py-1.5">Product</th>
+                                      <th className="px-2 py-1.5 text-center">Qty</th>
+                                      <th className="px-2 py-1.5 text-right">Amount</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-[#EAD7B7]/20">
+                                    {billItems.map((raw, idx) => {
+                                      const it = raw as Record<string, unknown>
+                                      return (
+                                        <tr key={idx}>
+                                          <td className="px-2 py-1.5 font-bold text-[#2C392A]">{String(it.name || it.product_name || 'Product')}</td>
+                                          <td className="px-2 py-1.5 text-center font-bold">{toNumber(it.quantity ?? it.qty, 0)}</td>
+                                          <td className="px-2 py-1.5 font-black text-[#2C392A] text-right">{formatCurrency(toNumber(it.line_total ?? it.lineTotal, 0))}</td>
+                                        </tr>
+                                      )
+                                    })}
+                                  </tbody>
+                                  <tfoot className="bg-[#F7F6F2] border-t border-[#EAD7B7]/30">
+                                    <tr>
+                                      <td colSpan={2} className="px-2 py-1.5 text-right font-black text-[11px] uppercase">Total</td>
+                                      <td className="px-2 py-1.5 text-right font-black text-[15px] text-[#2C392A]">{formatCurrency(toNumber(o.total, 0))}</td>
+                                    </tr>
+                                  </tfoot>
+                                </table>
+                              </div>
+                            ) : (
+                              <p className="text-[12px] text-[#5F6D59] italic">No items</p>
+                            )
+                          })()}
+                          <div className="rounded-xl border border-green-100 bg-green-50/60 p-3">
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                              <p className="text-[11px] font-black uppercase tracking-wider text-green-800">WhatsApp Invoice</p>
+                              <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-black uppercase text-green-700">PDF ready</span>
+                            </div>
+                            <div className="grid grid-cols-1 gap-1 text-[11px] text-[#5F6D59]">
+                              <p><span className="font-black">Recipient:</span> {o.phone || 'No phone number'}</p>
+                              <p><span className="font-black">Attachment:</span> Invoice-{o.invoice_no || o.id}.pdf</p>
+                            </div>
+                            <details className="mt-2">
+                              <summary className="cursor-pointer text-[11px] font-black text-green-800">View sent message</summary>
+                              <pre className="mt-2 max-h-60 overflow-auto whitespace-pre-wrap rounded-lg bg-white p-2 text-[10px] leading-relaxed text-[#2C392A]">{getWhatsAppInvoiceMessage(o)}</pre>
+                            </details>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )
                 })}
                 {filteredSearchResults.length === 0 && (
-                  <div className="rounded-2xl border border-[#EAD7B7]/60 bg-[#FBFAF6] px-4 py-8 text-center text-[#5F6D59]">{l('No matching bills', 'பில்கள் இல்லை')}</div>
+                  <div className="rounded-2xl border border-[#EAD7B7]/60 bg-[#FBFAF6] px-4 py-8 text-center text-[#5F6D59]">{l('No matching bills', 'à®ªà®¿à®²à¯à®•à®³à¯ à®‡à®²à¯à®²à¯ˆ')}</div>
                 )}
               </div>
               <div className="hidden md:block overflow-x-auto rounded-xl border border-[#EAD7B7]/60 bg-[#FBFAF6]">
                 <table className="w-full min-w-[800px] text-left text-[13px]">
                   <thead className="bg-[#F7F6F2] text-[10px] uppercase tracking-wider text-[#5F6D59]">
                     <tr>
-                      {['Invoice No', 'Customer Name', 'Phone', 'Bill Type', 'Coupon', 'Discount', 'Delivery', 'Total', 'Date', 'Status'].map(h => (
+                      {['Invoice No', 'Customer Name', 'Phone', 'Bill Type', 'Coupon', 'Discount', 'Delivery', 'Total', 'Date', 'Status', ''].map(h => (
                         <th key={h} className="px-3 py-3 font-black">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#EAD7B7]/30 bg-white">
                     {filteredSearchResults.slice(0, 50).map(o => {
+                      const isBillingExpanded = billingExpandedId === o.id
+                      const billItems = parseOrderItems(o.items)
                       const billTypeLabel = normalizeOrderType(o.order_type) === 'manual_sale' ? 'MANUAL' : normalizeOrderMode(o.order_mode) === 'online' ? 'ONLINE' : 'OFFLINE'
                       const billTypeClass = normalizeOrderType(o.order_type) === 'manual_sale' ? 'bg-purple-50 text-purple-700' : normalizeOrderMode(o.order_mode) === 'online' ? 'bg-blue-50 text-blue-700' : 'bg-orange-50 text-orange-700'
                       return (
-                        <tr key={o.id} className="hover:bg-[#F7F6F2]">
+                        <React.Fragment key={o.id}>
+                        <tr className={`hover:bg-[#F7F6F2] ${isBillingExpanded ? 'bg-purple-50/30' : ''}`}>
                           <td className="whitespace-nowrap px-3 py-3 text-[12px] font-bold text-[#2C392A]">{o.invoice_no || '—'}</td>
                           <td className="max-w-[110px] truncate px-3 py-3 text-[12px] font-semibold text-[#2C392A]">{o.customer_name}</td>
                           <td className="whitespace-nowrap px-3 py-3 text-[12px] text-[#5F6D59]">{o.phone}</td>
@@ -2493,16 +2594,87 @@ export default function Dashboard() {
                                 <option value="pending">{l('Pending', 'à®¨à®¿à®²à¯à®µà¯ˆ')}</option>
                                 <option value="completed">{l('Completed', 'à®®à¯à®Ÿà®¿à®¨à¯à®¤à®¤à¯')}</option>
                               </select>
-                              <button onClick={() => void deleteOrder(o.id, o.invoice_no)} className="rounded-lg p-1 text-[#8B2332] transition-colors hover:bg-[#8B2332]/5" title="Delete Order">
+                              <button onClick={() => void deleteOrder(o.id, o.invoice_no)} className="rounded-lg p-1 text-[#7e22ce] transition-colors hover:bg-[#7e22ce]/5" title="Delete Order">
                                 <Trash2 size={14} />
                               </button>
                             </div>
                           </td>
+                          <td className="px-3 py-3 text-center">
+                            <button type="button" onClick={() => setBillingExpandedId(isBillingExpanded ? null : o.id)}
+                              className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black transition-colors whitespace-nowrap ${isBillingExpanded ? 'bg-primary text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}>
+                              {isBillingExpanded ? l('Close', '') : l('View Details', '')}
+                            </button>
+                          </td>
                         </tr>
+                        {isBillingExpanded && (
+                          <tr>
+                            <td colSpan={11} className="px-4 pb-4 pt-1 bg-purple-50/20">
+                              <div className="space-y-3">
+                                <div className="flex flex-wrap gap-4 text-[12px] bg-white rounded-xl p-3 border border-purple-100">
+                                  <div><span className="font-black text-[#5F6D59]">{l('Name', '')}: </span><span className="font-bold text-[#2C392A]">{o.customer_name || '-'}</span></div>
+                                  <div><span className="font-black text-[#5F6D59]">{l('Phone', '')}: </span><span className="font-bold text-[#2C392A]">{o.phone || '-'}</span></div>
+                                  <div className="flex-1"><span className="font-black text-[#5F6D59]">{l('Address', '')}: </span><span className="text-[#2C392A]">{o.address || '-'}</span></div>
+                                </div>
+                                {billItems.length > 0 && (
+                                  <div className="overflow-x-auto">
+                                    <table className="w-full text-[12px] min-w-[400px] bg-white rounded-xl overflow-hidden border border-purple-100">
+                                      <thead className="bg-[#F7F6F2]">
+                                        <tr className="text-left text-[#5F6D59] font-black text-[10px] uppercase tracking-wider">
+                                          <th className="px-3 py-2">{l('Product', '')}</th>
+                                          <th className="px-3 py-2 text-center">{l('Qty', '')}</th>
+                                          <th className="px-3 py-2">{l('Rate', '')}</th>
+                                          <th className="px-3 py-2 text-right">{l('Amount', '')}</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-[#EAD7B7]/20">
+                                        {billItems.map((raw, idx) => {
+                                          const it = raw as Record<string, unknown>
+                                          const nm = String(it.name || it.product_name || 'Product')
+                                          const qty = toNumber(it.quantity ?? it.qty, 0)
+                                          const rate = toNumber(it.base_price ?? it.basePrice ?? it.price, 0)
+                                          const lt = toNumber(it.line_total ?? it.lineTotal, 0)
+                                          return (
+                                            <tr key={idx} className="hover:bg-purple-50/20">
+                                              <td className="px-3 py-2 font-bold text-[#2C392A]">{nm}</td>
+                                              <td className="px-3 py-2 text-center font-bold">{qty}</td>
+                                              <td className="px-3 py-2 text-[#5F6D59]">{formatCurrency(rate)}</td>
+                                              <td className="px-3 py-2 font-black text-[#2C392A] text-right">{formatCurrency(lt)}</td>
+                                            </tr>
+                                          )
+                                        })}
+                                      </tbody>
+                                      <tfoot className="bg-[#F7F6F2] border-t border-[#EAD7B7]/30">
+                                        <tr>
+                                          <td colSpan={3} className="px-3 py-2 text-right font-black text-[#5F6D59] text-[11px] uppercase tracking-wider">{l('Grand Total', '')}</td>
+                                          <td className="px-3 py-2 text-right font-black text-[16px] text-[#2C392A]">{formatCurrency(toNumber(o.total, 0))}</td>
+                                        </tr>
+                                      </tfoot>
+                                    </table>
+                                  </div>
+                                )}
+                                <div className="rounded-xl border border-green-100 bg-green-50/60 p-3">
+                                  <div className="flex items-center justify-between gap-2 mb-2">
+                                    <p className="text-[11px] font-black uppercase tracking-wider text-green-800">WhatsApp Invoice</p>
+                                    <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-black uppercase text-green-700">PDF ready</span>
+                                  </div>
+                                  <div className="flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-[#5F6D59]">
+                                    <p><span className="font-black">Recipient:</span> {o.phone || 'No phone number'}</p>
+                                    <p><span className="font-black">Attachment:</span> Invoice-{o.invoice_no || o.id}.pdf</p>
+                                  </div>
+                                  <details className="mt-2">
+                                    <summary className="cursor-pointer text-[11px] font-black text-green-800">View sent message</summary>
+                                    <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap rounded-lg bg-white p-3 text-[10px] leading-relaxed text-[#2C392A]">{getWhatsAppInvoiceMessage(o)}</pre>
+                                  </details>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                        </React.Fragment>
                       )
                     })}
                     {filteredSearchResults.length === 0 && (
-                      <tr><td colSpan={10} className="px-4 py-8 text-center text-[#5F6D59]">{l('No matching bills', 'பில்கள் இல்லை')}</td></tr>
+                      <tr><td colSpan={11} className="px-4 py-8 text-center text-[#5F6D59]">{l('No matching bills', 'à®ªà®¿à®²à¯à®•à®³à¯ à®‡à®²à¯à®²à¯ˆ')}</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -2537,8 +2709,8 @@ export default function Dashboard() {
                           const baseQty = opt.value === 'weight' ? 100 : opt.value === 'volume' ? 250 : 1
                           setProdForm(f => ({ ...f, unitType: opt.value, unitLabel, baseQuantity: baseQty, predefinedOptionsText: defaults, allowDecimalQuantity: opt.value === 'weight' || opt.value === 'volume' }))
                         }}
-                        className={`p-3 rounded-xl text-left border-2 transition-colors ${prodForm.unitType === opt.value ? 'border-maroon-dark bg-maroon-dark/5' : 'border-[#F3F4F6] hover:border-[#D1D5DB]'}`}>
-                        <p className={`text-[13px] font-black ${prodForm.unitType === opt.value ? 'text-maroon-dark' : 'text-[#111111]'}`}>{opt.label}</p>
+                        className={`p-3 rounded-xl text-left border-2 transition-colors ${prodForm.unitType === opt.value ? 'border-primary bg-primary/5' : 'border-[#F3F4F6] hover:border-[#D1D5DB]'}`}>
+                        <p className={`text-[13px] font-black ${prodForm.unitType === opt.value ? 'text-primary' : 'text-[#111111]'}`}>{opt.label}</p>
                         <p className="text-[11px] text-[#6B7280] leading-tight mt-1">{opt.hint}</p>
                       </button>
                     ))}
@@ -2548,18 +2720,18 @@ export default function Dashboard() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
                     <label className="block text-[11px] font-black uppercase text-[#6B7280] tracking-wider mb-1">{l('Product Name', 'à®ªà¯Šà®°à¯à®³à¯ à®ªà¯†à®¯à®°à¯')} *</label>
-                    <input required className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-maroon-dark rounded-xl text-[13px] font-bold outline-none transition-colors"
+                    <input required className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-primary rounded-xl text-[13px] font-bold outline-none transition-colors"
                       placeholder="e.g. Manjal Podi" value={prodForm.name} onChange={e => setProdForm(f => ({...f, name: e.target.value}))} />
                   </div>
                   <div className="col-span-2">
                     <label className="block text-[11px] font-black uppercase text-[#6B7280] tracking-wider mb-1">{l('Tamil Name', 'à®¤à®®à®¿à®´à¯ à®ªà¯†à®¯à®°à¯')}</label>
-                    <input className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-maroon-dark rounded-xl text-[13px] font-bold outline-none transition-colors"
+                    <input className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-primary rounded-xl text-[13px] font-bold outline-none transition-colors"
                       placeholder="à®Ž.à®•à®¾. à®®à®žà¯à®šà®³à¯ à®ªà¯Šà®Ÿà®¿" value={prodForm.nameTa} onChange={e => setProdForm(f => ({...f, nameTa: e.target.value}))} />
                   </div>
                   <div>
                     <label className="block text-[11px] font-black uppercase text-[#6B7280] tracking-wider mb-1">{l('Price (â‚¹)', 'à®µà®¿à®²à¯ˆ (â‚¹)')} *</label>
                     <input required type="number" min="0" step="0.01"
-                      className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-maroon-dark rounded-xl text-[13px] font-bold outline-none transition-colors"
+                      className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-primary rounded-xl text-[13px] font-bold outline-none transition-colors"
                       value={prodForm.price} onChange={e => setProdForm(f => ({...f, price: Number(e.target.value)}))} />
                     <p className="text-[11px] text-[#6B7280] mt-1">
                       {prodForm.unitType === 'weight' ? `Per ${prodForm.baseQuantity}g` : prodForm.unitType === 'volume' ? `Per ${prodForm.baseQuantity}ml` : 'Per piece/bundle'}
@@ -2568,42 +2740,42 @@ export default function Dashboard() {
                   <div>
                     <label className="block text-[11px] font-black uppercase text-[#6B7280] tracking-wider mb-1">{l('Purchase Price (â‚¹)', 'à®µà®¾à®™à¯à®•à®¿à®¯ à®µà®¿à®²à¯ˆ')} *</label>
                     <input required type="number" min="0" step="0.01"
-                      className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-maroon-dark rounded-xl text-[13px] font-bold outline-none transition-colors"
+                      className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-primary rounded-xl text-[13px] font-bold outline-none transition-colors"
                       value={prodForm.purchasePrice} onChange={e => setProdForm(f => ({...f, purchasePrice: Number(e.target.value)}))} />
                   </div>
                   <div>
                     <label className="block text-[11px] font-black uppercase text-[#6B7280] tracking-wider mb-1">{l('MRP (â‚¹)', 'MRP (â‚¹)')}</label>
                     <input type="number" min="0" step="0.01"
-                      className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-maroon-dark rounded-xl text-[13px] font-bold outline-none transition-colors"
+                      className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-primary rounded-xl text-[13px] font-bold outline-none transition-colors"
                       placeholder="Maximum Retail Price"
                       value={prodForm.mrp} onChange={e => setProdForm(f => ({...f, mrp: e.target.value}))} />
                   </div>
                   <div>
                     <label className="block text-[11px] font-black uppercase text-[#6B7280] tracking-wider mb-1">{l('Offer Price (â‚¹)', 'à®šà®²à¯à®•à¯ˆ à®µà®¿à®²à¯ˆ')}</label>
                     <input type="number" min="0" step="0.01"
-                      className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-maroon-dark rounded-xl text-[13px] font-bold outline-none transition-colors"
+                      className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-primary rounded-xl text-[13px] font-bold outline-none transition-colors"
                       placeholder="Leave blank for no discount"
                       value={prodForm.offerPrice} onChange={e => setProdForm(f => ({...f, offerPrice: e.target.value}))} />
                   </div>
                   <div>
                     <label className="block text-[11px] font-black uppercase text-[#6B7280] tracking-wider mb-1">{l('SKU', 'SKU')}</label>
-                    <input className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-maroon-dark rounded-xl text-[13px] font-bold outline-none transition-colors"
+                    <input className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-primary rounded-xl text-[13px] font-bold outline-none transition-colors"
                       placeholder="e.g. MP-100G" value={prodForm.sku} onChange={e => setProdForm(f => ({...f, sku: e.target.value}))} />
                   </div>
                   <div>
                     <label className="block text-[11px] font-black uppercase text-[#6B7280] tracking-wider mb-1">{l('Barcode', 'à®ªà®¾à®°à¯à®•à¯‹à®Ÿà¯')}</label>
-                    <input className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-maroon-dark rounded-xl text-[13px] font-bold outline-none transition-colors"
+                    <input className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-primary rounded-xl text-[13px] font-bold outline-none transition-colors"
                       placeholder="e.g. 8901234567890" value={prodForm.barcode} onChange={e => setProdForm(f => ({...f, barcode: e.target.value}))} />
                   </div>
                   <div>
                     <label className="block text-[11px] font-black uppercase text-[#6B7280] tracking-wider mb-1">{l('Stock', 'à®‡à®°à¯à®ªà¯à®ªà¯')} *</label>
                     <input required type="number" min="0"
-                      className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-maroon-dark rounded-xl text-[13px] font-bold outline-none transition-colors"
+                      className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-primary rounded-xl text-[13px] font-bold outline-none transition-colors"
                       value={prodForm.stockQuantity} onChange={e => setProdForm(f => ({...f, stockQuantity: Number(e.target.value)}))} />
                   </div>
                   <div>
                     <label className="block text-[11px] font-black uppercase text-[#6B7280] tracking-wider mb-1">{l('Category', 'à®µà®•à¯ˆ')} *</label>
-                    <select required className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-maroon-dark rounded-xl text-[13px] font-bold outline-none transition-colors appearance-none"
+                    <select required className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-primary rounded-xl text-[13px] font-bold outline-none transition-colors appearance-none"
                       value={prodForm.category}
                       onChange={e => {
                         const sel = cats.find(c => c.name_en === e.target.value)
@@ -2621,7 +2793,7 @@ export default function Dashboard() {
                     <label className="block text-[11px] font-black uppercase text-[#6B7280] tracking-wider mb-1">
                       Size Options (comma-separated)
                     </label>
-                    <input className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-maroon-dark rounded-xl text-[13px] font-bold outline-none transition-colors"
+                    <input className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-primary rounded-xl text-[13px] font-bold outline-none transition-colors"
                       placeholder={prodForm.unitType === 'weight' ? '100g, 250g, 500g, 1kg' : '250ml, 500ml, 1L'}
                       value={prodForm.predefinedOptionsText}
                       onChange={e => setProdForm(f => ({...f, predefinedOptionsText: e.target.value}))} />
@@ -2631,14 +2803,14 @@ export default function Dashboard() {
 
                 <div>
                   <label className="block text-[11px] font-black uppercase text-[#6B7280] tracking-wider mb-1">{l('Description', 'à®µà®¿à®³à®•à¯à®•à®®à¯')}</label>
-                  <textarea rows={2} className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-maroon-dark rounded-xl text-[13px] font-bold outline-none transition-colors resize-none"
+                  <textarea rows={2} className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-primary rounded-xl text-[13px] font-bold outline-none transition-colors resize-none"
                     placeholder="Short product description..." value={prodForm.description}
                     onChange={e => setProdForm(f => ({...f, description: e.target.value}))} />
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-black uppercase text-[#6B7280] tracking-wider mb-1">{l('Benefits / Health Tags', 'à®¨à®©à¯à®®à¯ˆà®•à®³à¯')}</label>
-                  <input className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-maroon-dark rounded-xl text-[13px] font-bold outline-none transition-colors"
+                  <input className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-primary rounded-xl text-[13px] font-bold outline-none transition-colors"
                     placeholder="Immunity, Digestion (comma-separated)"
                     value={prodForm.benefits}
                     onChange={e => setProdForm(f => ({...f, benefits: e.target.value}))} />
@@ -2647,13 +2819,13 @@ export default function Dashboard() {
                 {/* Image */}
                 <div className="space-y-3">
                   <label className="block text-[11px] font-black uppercase text-[#6B7280] tracking-wider">{l('Product Image', 'à®ªà®Ÿà®®à¯')}</label>
-                  <input className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-maroon-dark rounded-xl text-[13px] font-bold outline-none transition-colors"
+                  <input className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-primary rounded-xl text-[13px] font-bold outline-none transition-colors"
                     placeholder="https://... (image URL)"
                     value={prodForm.image} onChange={e => setProdForm(f => ({...f, image: e.target.value}))} />
                   <input type="file" accept="image/*"
                     className="w-full px-4 py-2 bg-[#FAFAFA] border border-[#F3F4F6] rounded-xl text-[12px] text-[#6B7280]"
                     onChange={e => void handleUploadImage(e.target.files?.[0])} />
-                  {imageUploading && <p className="text-[12px] text-maroon-dark font-bold">{l('Uploading image...', 'à®ªà®Ÿà®®à¯ à®ªà®¤à®¿à®µà¯‡à®±à¯à®±à¯à®•à®¿à®±à®¤à¯...')}</p>}
+                  {imageUploading && <p className="text-[12px] text-primary font-bold">{l('Uploading image...', 'à®ªà®Ÿà®®à¯ à®ªà®¤à®¿à®µà¯‡à®±à¯à®±à¯à®•à®¿à®±à®¤à¯...')}</p>}
                   {prodForm.image && (
                     <div className="w-20 h-20 rounded-xl overflow-hidden bg-[#FAFAFA] border border-borderLight shadow-sm">
                       <img src={prodForm.image} alt="preview" className="w-full h-full object-cover" />
@@ -2664,7 +2836,7 @@ export default function Dashboard() {
                 <div className="flex items-center gap-3 pt-2">
                   <input type="checkbox" id="isActive" checked={prodForm.isActive}
                     onChange={e => setProdForm(f => ({...f, isActive: e.target.checked}))} 
-                    className="w-4 h-4 text-maroon-dark rounded focus:ring-maroon-dark accent-maroon-dark"
+                    className="w-4 h-4 text-primary rounded focus:ring-primary accent-primary"
                   />
                   <label htmlFor="isActive" className="text-[14px] font-bold text-[#111111]">{l('Active (visible in store)', 'à®•à®Ÿà¯ˆà®¯à®¿à®²à¯ à®•à®¾à®Ÿà¯à®Ÿà¯')}</label>
                 </div>
@@ -2672,7 +2844,7 @@ export default function Dashboard() {
                   <input type="checkbox" id="hasVariants"
                     checked={!!prodForm.hasVariants}
                     onChange={e => setProdForm(f => ({...f, hasVariants: e.target.checked} as typeof f))} 
-                    className="w-4 h-4 text-maroon-dark rounded focus:ring-maroon-dark accent-maroon-dark"
+                    className="w-4 h-4 text-primary rounded focus:ring-primary accent-primary"
                   />
                   <label htmlFor="hasVariants" className="text-[14px] font-bold text-[#111111]">
                     {l('Has Variants (brands/sizes)', 'à®µà®•à¯ˆà®•à®³à¯ à®‰à®³à¯à®³à®©')}
@@ -2681,7 +2853,7 @@ export default function Dashboard() {
 
                 <div className="flex gap-3 pt-3 border-t border-borderLight">
                   <button type="submit" disabled={loading}
-                    className="flex-grow py-3 bg-maroon-dark hover:bg-[#721528] text-white font-black rounded-xl disabled:opacity-60 transition-colors shadow-sm text-[13px]">
+                    className="flex-grow py-3 bg-primary hover:bg-primary-dark text-white font-black rounded-xl disabled:opacity-60 transition-colors shadow-sm text-[13px]">
                     {loading ? l('Saving...','à®šà¯‡à®®à®¿à®•à¯à®•à®¿à®±à®¤à¯...') : editingProd ? l('Update Product','à®ªà¯à®¤à¯à®ªà¯à®ªà®¿') : l('Add Product','à®šà¯‡à®°à¯à®•à¯à®•à®µà¯à®®à¯')}
                   </button>
                   <button type="button" onClick={() => { setEditingProd(null); setProdForm(emptyForm); setProductNotice('') }}
@@ -2707,7 +2879,7 @@ export default function Dashboard() {
                         placeholder={l('Search items...', 'à®ªà¯Šà®°à¯à®Ÿà¯à®•à®³à¯ˆ à®¤à¯‡à®Ÿ...')}
                         value={inventorySearch}
                         onChange={e => setInventorySearch(e.target.value)}
-                        className="pl-10 pr-4 py-2 rounded-xl border border-[#F3F4F6] text-[13px] bg-[#FAFAFA] focus:bg-white outline-none focus:border-maroon-dark w-[180px] lg:w-[240px] transition-colors shadow-sm"
+                        className="pl-10 pr-4 py-2 rounded-xl border border-[#F3F4F6] text-[13px] bg-[#FAFAFA] focus:bg-white outline-none focus:border-primary w-[180px] lg:w-[240px] transition-colors shadow-sm"
                       />
                     </div>
                   </div>
@@ -2756,7 +2928,7 @@ export default function Dashboard() {
                           <td className="px-4 py-4 font-bold text-[#111111]">{formatCurrency(p.price)}</td>
                           <td className="px-6 py-4 text-right">
                             <div className="flex items-center justify-end gap-2">
-                              <button onClick={() => handleEdit(p)} title="Edit product" className="p-2 text-[#6B7280] hover:text-maroon-dark hover:bg-maroon-dark/5 rounded-lg transition-colors shadow-sm bg-white border border-[#F3F4F6]">
+                              <button onClick={() => handleEdit(p)} title="Edit product" className="p-2 text-[#6B7280] hover:text-primary hover:bg-primary/5 rounded-lg transition-colors shadow-sm bg-white border border-[#F3F4F6]">
                                 <Edit2 size={16} />
                               </button>
                               <button onClick={() => void handleToggleActive(p)} title={p.isActive ? 'Deactivate' : 'Activate'} className={`p-2 rounded-lg transition-colors shadow-sm bg-white border border-[#F3F4F6] ${p.isActive ? 'text-amber-500 hover:bg-amber-50' : 'text-green-600 hover:bg-green-50'}`}>
@@ -2805,7 +2977,7 @@ export default function Dashboard() {
                       <div className="col-span-2">
                         <label className="block text-[11px] font-black uppercase tracking-wider text-[#6B7280] mb-1">{l('Variant Name *', 'à®µà®•à¯ˆ à®ªà¯†à®¯à®°à¯ *')}</label>
                         <input required
-                          className="w-full px-4 py-2.5 bg-white rounded-xl border border-[#D1D5DB] text-[13px] font-bold outline-none focus:border-maroon-dark transition-colors shadow-sm"
+                          className="w-full px-4 py-2.5 bg-white rounded-xl border border-[#D1D5DB] text-[13px] font-bold outline-none focus:border-primary transition-colors shadow-sm"
                           placeholder={l('e.g. Cycle Brand / 25g', 'e.g. Cycle Brand / 25g')}
                           value={variantForm.name}
                           onChange={e => setVariantForm(f => ({...f, name: e.target.value}))} />
@@ -2813,7 +2985,7 @@ export default function Dashboard() {
                       <div>
                         <label className="block text-[11px] font-black uppercase tracking-wider text-[#6B7280] mb-1">{l('Size Label', 'à®…à®³à®µà¯ à®ªà®Ÿà¯à®Ÿà¯ˆ')}</label>
                         <input
-                          className="w-full px-4 py-2.5 bg-white rounded-xl border border-[#D1D5DB] text-[13px] font-bold outline-none focus:border-maroon-dark transition-colors shadow-sm"
+                          className="w-full px-4 py-2.5 bg-white rounded-xl border border-[#D1D5DB] text-[13px] font-bold outline-none focus:border-primary transition-colors shadow-sm"
                           placeholder="25g / 250ml / 1 pack"
                           value={variantForm.sizeLabel}
                           onChange={e => setVariantForm(f => ({...f, sizeLabel: e.target.value}))} />
@@ -2821,7 +2993,7 @@ export default function Dashboard() {
                       <div>
                         <label className="block text-[11px] font-black uppercase tracking-wider text-[#6B7280] mb-1">{l('Purchase Price (â‚¹)', 'à®µà®¾à®™à¯à®•à®¿à®¯ à®µà®¿à®²à¯ˆ')}</label>
                         <input type="number" min="0" step="0.01"
-                          className="w-full px-4 py-2.5 bg-white rounded-xl border border-[#D1D5DB] text-[13px] font-bold outline-none focus:border-maroon-dark transition-colors shadow-sm"
+                          className="w-full px-4 py-2.5 bg-white rounded-xl border border-[#D1D5DB] text-[13px] font-bold outline-none focus:border-primary transition-colors shadow-sm"
                           placeholder="30"
                           value={variantForm.purchasePrice}
                           onChange={e => setVariantForm(f => ({...f, purchasePrice: e.target.value}))} />
@@ -2829,7 +3001,7 @@ export default function Dashboard() {
                       <div>
                         <label className="block text-[11px] font-black uppercase tracking-wider text-[#6B7280] mb-1">{l('MRP (â‚¹)', 'MRP (â‚¹)')}</label>
                         <input type="number" min="0" step="0.01"
-                          className="w-full px-4 py-2.5 bg-white rounded-xl border border-[#D1D5DB] text-[13px] font-bold outline-none focus:border-maroon-dark transition-colors shadow-sm"
+                          className="w-full px-4 py-2.5 bg-white rounded-xl border border-[#D1D5DB] text-[13px] font-bold outline-none focus:border-primary transition-colors shadow-sm"
                           placeholder="50"
                           value={variantForm.mrp}
                           onChange={e => setVariantForm(f => ({...f, mrp: e.target.value}))} />
@@ -2837,21 +3009,21 @@ export default function Dashboard() {
                       <div>
                         <label className="block text-[11px] font-black uppercase tracking-wider text-[#6B7280] mb-1">{l('Selling Price (â‚¹) *', 'à®µà®¿à®±à¯à®ªà®©à¯ˆ à®µà®¿à®²à¯ˆ *')}</label>
                         <input required type="number" min="0" step="0.01"
-                          className="w-full px-4 py-2.5 bg-white rounded-xl border border-[#D1D5DB] text-[13px] font-bold outline-none focus:border-maroon-dark transition-colors shadow-sm"
+                          className="w-full px-4 py-2.5 bg-white rounded-xl border border-[#D1D5DB] text-[13px] font-bold outline-none focus:border-primary transition-colors shadow-sm"
                           placeholder="40"
                           value={variantForm.price}
                           onChange={e => setVariantForm(f => ({...f, price: e.target.value}))} />
                       </div>
                       <div>
                         <label className="block text-[11px] font-black uppercase tracking-wider text-[#6B7280] mb-1">{l('SKU', 'SKU')}</label>
-                        <input className="w-full px-4 py-2.5 bg-white rounded-xl border border-[#D1D5DB] text-[13px] font-bold outline-none focus:border-maroon-dark transition-colors shadow-sm"
+                        <input className="w-full px-4 py-2.5 bg-white rounded-xl border border-[#D1D5DB] text-[13px] font-bold outline-none focus:border-primary transition-colors shadow-sm"
                           placeholder="SKU-123"
                           value={variantForm.sku}
                           onChange={e => setVariantForm(f => ({...f, sku: e.target.value}))} />
                       </div>
                       <div>
                         <label className="block text-[11px] font-black uppercase tracking-wider text-[#6B7280] mb-1">{l('Barcode', 'à®ªà®¾à®°à¯à®•à¯‹à®Ÿà¯')}</label>
-                        <input className="w-full px-4 py-2.5 bg-white rounded-xl border border-[#D1D5DB] text-[13px] font-bold outline-none focus:border-maroon-dark transition-colors shadow-sm"
+                        <input className="w-full px-4 py-2.5 bg-white rounded-xl border border-[#D1D5DB] text-[13px] font-bold outline-none focus:border-primary transition-colors shadow-sm"
                           placeholder="890..."
                           value={variantForm.barcode}
                           onChange={e => setVariantForm(f => ({...f, barcode: e.target.value}))} />
@@ -2859,7 +3031,7 @@ export default function Dashboard() {
                       <div>
                         <label className="block text-[11px] font-black uppercase tracking-wider text-[#6B7280] mb-1">{l('Stock *', 'à®‡à®°à¯à®ªà¯à®ªà¯ *')}</label>
                         <input required type="number" min="0"
-                          className="w-full px-4 py-2.5 bg-white rounded-xl border border-[#D1D5DB] text-[13px] font-bold outline-none focus:border-maroon-dark transition-colors shadow-sm"
+                          className="w-full px-4 py-2.5 bg-white rounded-xl border border-[#D1D5DB] text-[13px] font-bold outline-none focus:border-primary transition-colors shadow-sm"
                           placeholder="50"
                           value={variantForm.stock}
                           onChange={e => setVariantForm(f => ({...f, stock: e.target.value}))} />
@@ -2867,7 +3039,7 @@ export default function Dashboard() {
                       <div>
                         <label className="block text-[11px] font-black uppercase tracking-wider text-[#6B7280] mb-1">{l('Weight/Vol Value', 'à®Žà®Ÿà¯ˆ à®®à®¤à®¿à®ªà¯à®ªà¯')}</label>
                         <input type="number" min="0" step="0.001"
-                          className="w-full px-4 py-2.5 bg-white rounded-xl border border-[#D1D5DB] text-[13px] font-bold outline-none focus:border-maroon-dark transition-colors shadow-sm"
+                          className="w-full px-4 py-2.5 bg-white rounded-xl border border-[#D1D5DB] text-[13px] font-bold outline-none focus:border-primary transition-colors shadow-sm"
                           placeholder="250"
                           value={variantForm.weightValue}
                           onChange={e => setVariantForm(f => ({...f, weightValue: e.target.value}))} />
@@ -2875,7 +3047,7 @@ export default function Dashboard() {
                       <div>
                         <label className="block text-[11px] font-black uppercase tracking-wider text-[#6B7280] mb-1">{l('Unit', 'à®…à®²à®•à¯')}</label>
                         <select
-                          className="w-full px-4 py-2.5 bg-white rounded-xl border border-[#D1D5DB] text-[13px] font-bold outline-none focus:border-maroon-dark transition-colors shadow-sm appearance-none"
+                          className="w-full px-4 py-2.5 bg-white rounded-xl border border-[#D1D5DB] text-[13px] font-bold outline-none focus:border-primary transition-colors shadow-sm appearance-none"
                           value={variantForm.weightUnit}
                           onChange={e => setVariantForm(f => ({...f, weightUnit: e.target.value}))}>
                           <option value="">-</option>
@@ -2890,7 +3062,7 @@ export default function Dashboard() {
                     <div className="flex items-center gap-3 pt-2">
                       <input type="checkbox" id="varIsDefault" checked={variantForm.isDefault}
                         onChange={e => setVariantForm(f => ({...f, isDefault: e.target.checked}))} 
-                        className="w-4 h-4 text-maroon-dark rounded focus:ring-maroon-dark accent-maroon-dark"
+                        className="w-4 h-4 text-primary rounded focus:ring-primary accent-primary"
                       />
                       <label htmlFor="varIsDefault" className="text-[13px] font-bold text-[#111111]">{l('Default variant (shown first)', 'à®®à¯à®¤à®²à¯ à®µà®•à¯ˆ (à®®à¯à®¤à®²à®¿à®²à¯ à®•à®¾à®Ÿà¯à®Ÿà¯)')}</label>
                     </div>
@@ -2923,10 +3095,10 @@ export default function Dashboard() {
                       <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
                         {getVariants(String(editingProd.id)).map((v: ProductVariant) => (
                           <div key={v.id}
-                            className={`flex items-center justify-between gap-3 p-4 rounded-xl border transition-colors bg-white shadow-sm ${editingVariantId === v.id ? 'border-maroon-dark ring-1 ring-maroon-dark/20' : 'border-[#F3F4F6] hover:border-[#D1D5DB]'}`}>
+                            className={`flex items-center justify-between gap-3 p-4 rounded-xl border transition-colors bg-white shadow-sm ${editingVariantId === v.id ? 'border-primary ring-1 ring-primary/20' : 'border-[#F3F4F6] hover:border-[#D1D5DB]'}`}>
                             <div className="flex items-center gap-3 min-w-0">
                               {v.isDefault && (
-                                <span className="w-5 h-5 rounded-full bg-maroon-dark text-white text-[10px] font-black flex items-center justify-center shrink-0">â˜…</span>
+                                <span className="w-5 h-5 rounded-full bg-primary text-white text-[10px] font-black flex items-center justify-center shrink-0">â˜…</span>
                               )}
                               <div className="min-w-0">
                                 <p className="text-[14px] font-bold text-[#111111] truncate">{v.variantName}</p>
@@ -2938,7 +3110,7 @@ export default function Dashboard() {
                             <div className="flex items-center gap-2 shrink-0">
                               {!v.isDefault && (
                                 <button onClick={() => void handleSetDefault(v.id)}
-                                  className="px-2 py-1.5 text-[#6B7280] hover:text-maroon-dark hover:bg-maroon-dark/5 rounded-lg text-[10px] font-black uppercase transition-colors">
+                                  className="px-2 py-1.5 text-[#6B7280] hover:text-primary hover:bg-primary/5 rounded-lg text-[10px] font-black uppercase transition-colors">
                                   {l('Set Default', 'à®®à¯à®¤à®²à¯')}
                                 </button>
                               )}
@@ -2968,10 +3140,10 @@ export default function Dashboard() {
             <div className="bg-white rounded-2xl border border-borderLight p-6 shadow-sm">
               <h3 className="text-[18px] font-black text-[#111111] mb-5">{l('Product Categories', 'à®ªà¯Šà®°à¯à®³à¯ à®µà®•à¯ˆà®•à®³à¯')}</h3>
               <form onSubmit={onAddCat} className="flex gap-3 mb-6">
-                <input className="flex-grow px-4 py-3 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-maroon-dark outline-none rounded-xl text-[13px] font-bold transition-colors shadow-sm"
+                <input className="flex-grow px-4 py-3 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-primary outline-none rounded-xl text-[13px] font-bold transition-colors shadow-sm"
                   placeholder={l('Category name (English)', 'à®µà®•à¯ˆ à®ªà¯†à®¯à®°à¯ (English)')} value={newCat.name_en}
                   onChange={e => setNewCat(c => ({...c, name_en: e.target.value}))} />
-                <input className="w-36 px-4 py-3 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-maroon-dark outline-none rounded-xl text-[13px] font-bold transition-colors shadow-sm"
+                <input className="w-36 px-4 py-3 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-primary outline-none rounded-xl text-[13px] font-bold transition-colors shadow-sm"
                   placeholder={l('Tamil', 'à®¤à®®à®¿à®´à¯')} value={newCat.name_ta}
                   onChange={e => setNewCat(c => ({...c, name_ta: e.target.value}))} />
                 <button type="submit" className="px-5 py-3 bg-[#111111] hover:bg-[#333333] transition-colors shadow-sm text-white font-black rounded-xl text-[13px]">{l('Add', 'à®šà¯‡à®°à¯')}</button>
@@ -3006,46 +3178,46 @@ export default function Dashboard() {
             <div className="flex flex-col gap-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="space-y-2">
-                  <h2 className="text-[28px] lg:text-[32px] leading-none font-black text-[#111111]">{l('Coupon Management', 'கூப்பன் மேலாண்மை')}</h2>
-                  <p className="max-w-2xl text-[13px] lg:text-[14px] font-medium text-[#6C665C]">
+                  <h2 className="text-[22px] lg:text-[24px] leading-none font-black text-[#111111]">{l('Coupon Management', 'கூப்பன் மேலாண்மை')}</h2>
+                  <p className="max-w-2xl text-[12px] lg:text-[13px] font-medium text-[#6C665C]">
                     {l('Create and manage discount codes for the admin dashboard. Coupon discounts apply only to product subtotal, not delivery charge.', 'பொருட்களின் subtotal-க்கு மட்டும் கூப்பன் தள்ளுபடி பொருந்தும். delivery charge-க்கு இல்லை.')}
                   </p>
                 </div>
                 <button
                   onClick={() => void loadCoupons()}
-                  className="inline-flex items-center gap-2 rounded-full border border-[#EAD7B7] bg-[#FBFAF6] px-4 py-2.5 text-[13px] font-black text-[#8B2332] shadow-sm transition-colors hover:bg-[#F7F1E7]"
+                  className="inline-flex items-center gap-2 rounded-full border border-[#EAD7B7] bg-[#FBFAF6] px-4 py-2.5 text-[13px] font-black text-[#7e22ce] shadow-sm transition-colors hover:bg-[#F7F1E7]"
                 >
                   <RefreshCw size={14} />
                   Refresh
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-[#EAD7B7] bg-[#FBFAF6] px-4 py-4 shadow-sm">
-                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8B2332]">Total Coupons</p>
-                  <p className="mt-2 text-[26px] font-black text-[#2C392A]">{coupons.length}</p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                <div className="rounded-xl border border-[#EAD7B7] bg-[#FBFAF6] px-3 py-3 shadow-sm">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#7e22ce]">Total Coupons</p>
+                  <p className="mt-1 text-[20px] font-black text-[#2C392A]">{coupons.length}</p>
                 </div>
-                <div className="rounded-2xl border border-[#EAD7B7] bg-[#FBFAF6] px-4 py-4 shadow-sm">
-                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8B2332]">Active</p>
-                  <p className="mt-2 text-[26px] font-black text-[#8B2332]">{coupons.filter(c => c.is_active).length}</p>
+                <div className="rounded-xl border border-[#EAD7B7] bg-[#FBFAF6] px-3 py-3 shadow-sm">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#7e22ce]">Active</p>
+                  <p className="mt-1 text-[20px] font-black text-[#7e22ce]">{coupons.filter(c => c.is_active).length}</p>
                 </div>
-                <div className="rounded-2xl border border-[#EAD7B7] bg-[#FBFAF6] px-4 py-4 shadow-sm">
-                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8B2332]">Used</p>
-                  <p className="mt-2 text-[26px] font-black text-[#2C392A]">{coupons.reduce((acc, c) => acc + (c.usage_count || 0), 0)}</p>
+                <div className="rounded-xl border border-[#EAD7B7] bg-[#FBFAF6] px-3 py-3 shadow-sm">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#7e22ce]">Used</p>
+                  <p className="mt-1 text-[20px] font-black text-[#2C392A]">{coupons.reduce((acc, c) => acc + (c.usage_count || 0), 0)}</p>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-[#E7CFAA] bg-[#FFF6E7] px-4 py-3 text-[13px] font-bold text-[#8B2332] shadow-sm">
+              <div className="rounded-xl border border-[#E7CFAA] bg-[#FFF6E7] px-3 py-2 text-[12px] font-bold text-[#7e22ce] shadow-sm">
                 {l('Coupon discount applies to product subtotal only - not delivery charge.', 'கூப்பன் தள்ளுபடி பொருட்களின் subtotal-க்கு மட்டும் பொருந்தும். delivery charge-க்கு இல்லை.')}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
-              <form onSubmit={saveCoupon} className="rounded-[28px] border border-[#EAD7B7] bg-[#FFFCF6] p-6 shadow-[0_18px_40px_rgba(139,35,50,0.08)] space-y-5">
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
+              <form onSubmit={saveCoupon} className="rounded-2xl border border-[#EAD7B7] bg-[#FFFCF6] p-4 shadow-[0_8px_24px_rgba(139,35,50,0.06)] space-y-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8B2332]">{editingCouponId !== null ? 'Edit mode' : 'New coupon'}</p>
-                    <h3 className="mt-2 text-[22px] font-black text-[#2C392A]">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#7e22ce]">{editingCouponId !== null ? 'Edit mode' : 'New coupon'}</p>
+                    <h3 className="mt-1 text-[18px] font-black text-[#2C392A]">
                       {editingCouponId !== null ? l('Edit Coupon', 'கூப்பனை திருத்து') : l('Create Coupon', 'புதிய கூப்பன்')}
                     </h3>
                   </div>
@@ -3053,7 +3225,7 @@ export default function Dashboard() {
                     <button
                       type="button"
                       onClick={cancelEditCoupon}
-                      className="rounded-full border border-[#E7CFAA] bg-[#FFF6E7] px-3 py-1.5 text-[12px] font-black text-[#8B2332] transition-colors hover:bg-[#FBEBD3]"
+                      className="rounded-full border border-[#E7CFAA] bg-[#FFF6E7] px-2.5 py-1 text-[11px] font-black text-[#7e22ce] transition-colors hover:bg-[#FBEBD3]"
                     >
                       Cancel
                     </button>
@@ -3061,21 +3233,21 @@ export default function Dashboard() {
                 </div>
 
                 {couponSaveError && (
-                  <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] font-bold text-red-700">
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-[12px] font-bold text-red-700">
                     {couponSaveError}
                   </div>
                 )}
                 {couponSaveSuccess && (
-                  <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-[13px] font-bold text-green-700">
+                  <div className="rounded-xl border border-green-200 bg-green-50 px-3 py-2.5 text-[12px] font-bold text-green-700">
                     {couponSaveSuccess}
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-[#6B7280]">{l('Coupon Code', 'கூப்பன் குறியீடு')} *</label>
-                  <div className="flex gap-3">
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#6B7280]">{l('Coupon Code', 'கூப்பன் குறியீடு')} *</label>
+                  <div className="flex gap-2">
                     <input
-                      className="flex-1 rounded-2xl border border-[#E7D9BF] bg-white px-4 py-3 text-[14px] font-black uppercase tracking-[0.16em] text-[#2C392A] outline-none transition-colors focus:border-[#8B2332]"
+                      className="flex-1 rounded-xl border border-[#E7D9BF] bg-white px-3 py-2 text-[13px] font-black uppercase tracking-[0.16em] text-[#2C392A] outline-none transition-colors focus:border-[#7e22ce]"
                       placeholder="WELCOME10"
                       value={couponForm.code}
                       disabled={editingCouponId !== null}
@@ -3085,36 +3257,36 @@ export default function Dashboard() {
                       <button
                         type="button"
                         onClick={generateCouponCode}
-                        className="shrink-0 rounded-2xl border border-[#8B2332] bg-[#8B2332] px-4 py-3 text-[13px] font-black text-white transition-colors hover:bg-[#741D2A]"
+                        className="shrink-0 rounded-xl border border-[#7e22ce] bg-[#7e22ce] px-3 py-2 text-[12px] font-black text-white transition-colors hover:bg-[#5b189e]"
                       >
                         Generate
                       </button>
                     )}
                   </div>
                   {editingCouponId !== null && (
-                    <p className="text-[11px] font-medium text-[#6B7280]">{l('Code cannot be changed when editing', 'திருத்தும்போது குறியீட்டை மாற்ற முடியாது')}</p>
+                    <p className="text-[10px] font-medium text-[#6B7280]">{l('Code cannot be changed when editing', 'திருத்தும்போது குறியீட்டை மாற்ற முடியாது')}</p>
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-[#6B7280]">{l('Discount %', 'தள்ளுபடி %')} *</label>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#6B7280]">{l('Discount %', 'தள்ளுபடி %')} *</label>
                     <input
                       type="number"
                       min="1"
                       max="100"
-                      className="w-full rounded-2xl border border-[#E7D9BF] bg-white px-4 py-3 text-[13px] font-bold text-[#2C392A] outline-none transition-colors focus:border-[#8B2332]"
+                      className="w-full rounded-xl border border-[#E7D9BF] bg-white px-3 py-2 text-[12px] font-bold text-[#2C392A] outline-none transition-colors focus:border-[#7e22ce]"
                       placeholder="10"
                       value={couponForm.percentage}
                       onChange={e => setCouponForm(f => ({ ...f, percentage: Number(e.target.value) }))}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-[#6B7280]">{l('Min Order (₹)', 'குறைந்த ஆர்டர் (₹)')}</label>
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#6B7280]">{l('Min Order (RM)', 'குறைந்த ஆர்டர் (RM)')}</label>
                     <input
                       type="number"
                       min="0"
-                      className="w-full rounded-2xl border border-[#E7D9BF] bg-white px-4 py-3 text-[13px] font-bold text-[#2C392A] outline-none transition-colors focus:border-[#8B2332]"
+                      className="w-full rounded-xl border border-[#E7D9BF] bg-white px-3 py-2 text-[12px] font-bold text-[#2C392A] outline-none transition-colors focus:border-[#7e22ce]"
                       placeholder="0 = no minimum"
                       value={couponForm.min_order_value}
                       onChange={e => setCouponForm(f => ({ ...f, min_order_value: e.target.value }))}
@@ -3122,22 +3294,22 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-[#6B7280]">{l('Expiry Date', 'காலாவதி தேதி')}</label>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#6B7280]">{l('Expiry Date', 'காலாவதி தேதி')}</label>
                     <input
                       type="date"
-                      className="w-full rounded-2xl border border-[#E7D9BF] bg-white px-4 py-3 text-[13px] font-bold text-[#2C392A] outline-none transition-colors focus:border-[#8B2332]"
+                      className="w-full rounded-xl border border-[#E7D9BF] bg-white px-3 py-2 text-[12px] font-bold text-[#2C392A] outline-none transition-colors focus:border-[#7e22ce]"
                       value={couponForm.expiry_date}
                       onChange={e => setCouponForm(f => ({ ...f, expiry_date: e.target.value }))}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-[#6B7280]">{l('Usage Limit', 'பயன்பாட்டு வரம்பு')}</label>
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#6B7280]">{l('Usage Limit', 'பயன்பாட்டு வரம்பு')}</label>
                     <input
                       type="number"
                       min="1"
-                      className="w-full rounded-2xl border border-[#E7D9BF] bg-white px-4 py-3 text-[13px] font-bold text-[#2C392A] outline-none transition-colors focus:border-[#8B2332]"
+                      className="w-full rounded-xl border border-[#E7D9BF] bg-white px-3 py-2 text-[12px] font-bold text-[#2C392A] outline-none transition-colors focus:border-[#7e22ce]"
                       placeholder="Unlimited"
                       value={couponForm.usage_limit}
                       onChange={e => setCouponForm(f => ({ ...f, usage_limit: e.target.value }))}
@@ -3147,26 +3319,26 @@ export default function Dashboard() {
 
                 <button
                   type="submit"
-                  className="w-full rounded-2xl bg-[#8B2332] py-3.5 text-[14px] font-black text-white shadow-sm transition-colors hover:bg-[#741D2A]"
+                  className="w-full rounded-xl bg-[#7e22ce] py-2.5 text-[13px] font-black text-white shadow-sm transition-colors hover:bg-[#5b189e]"
                 >
                   {editingCouponId !== null ? l('Update Coupon', 'கூப்பனை புதுப்பி') : l('Create Coupon', 'கூப்பனை உருவாக்கு')}
                 </button>
               </form>
 
-              <div className="rounded-[28px] border border-[#EAD7B7] bg-[#FFFCF6] p-6 shadow-[0_18px_40px_rgba(139,35,50,0.08)]">
-                <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <div className="rounded-2xl border border-[#EAD7B7] bg-[#FFFCF6] p-4 shadow-[0_8px_24px_rgba(139,35,50,0.06)]">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#6B7280]">{l('Coupon List', 'கூப்பன் பட்டியல்')}</p>
-                    <h3 className="mt-2 text-[22px] font-black text-[#111111]">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#6B7280]">{l('Coupon List', 'கூப்பன் பட்டியல்')}</p>
+                    <h3 className="mt-0.5 text-[18px] font-black text-[#111111]">
                       {l('All Coupons', 'அனைத்து கூப்பன்கள்')} <span className="text-[#6B7280]">({coupons.length})</span>
                     </h3>
                   </div>
-                  <span className="rounded-full border border-[#E7CFAA] bg-[#FFF6E7] px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-[#8B2332]">
+                  <span className="rounded-full border border-[#E7CFAA] bg-[#FFF6E7] px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-[#7e22ce]">
                     {l('Admin only', 'அட்மின் மட்டும்')}
                   </span>
                 </div>
 
-                <div className="space-y-3 max-h-[36rem] overflow-y-auto pr-1">
+                <div className="space-y-2 max-h-[28rem] overflow-y-auto pr-1">
                   {coupons.map((coupon) => {
                     const isExpired = coupon.expiry_date ? new Date(coupon.expiry_date) < new Date() : false
                     const isExhausted = coupon.usage_limit !== null && coupon.usage_count >= coupon.usage_limit
@@ -3174,62 +3346,62 @@ export default function Dashboard() {
                     return (
                       <div
                         key={coupon.id}
-                        className={`rounded-[22px] border p-4 shadow-sm transition-all ${
+                        className={`rounded-xl border p-3 shadow-sm transition-all ${
                           isEditing
-                            ? 'border-[#8B2332] bg-[#FFF8F3] ring-1 ring-[#8B2332]/15'
+                            ? 'border-[#7e22ce] bg-[#FFF8F3] ring-1 ring-[#7e22ce]/15'
                             : 'border-[#F0E2C8] bg-white hover:border-[#D8BA8A]'
                         }`}
                       >
-                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                          <div className="min-w-0 space-y-2">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="truncate text-[18px] font-black uppercase tracking-[0.18em] text-[#2C392A]">{coupon.code}</p>
-                              <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${coupon.is_active ? 'bg-[#FCE7EA] text-[#8B2332]' : 'bg-[#F8EDD9] text-[#9A6700]'}`}>
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                          <div className="min-w-0 space-y-1">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <p className="truncate text-[15px] font-black uppercase tracking-[0.18em] text-[#2C392A]">{coupon.code}</p>
+                              <span className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] ${coupon.is_active ? 'bg-[#FCE7EA] text-[#7e22ce]' : 'bg-[#F8EDD9] text-[#9A6700]'}`}>
                                 {coupon.is_active ? l('Active', 'செயலில்') : l('Inactive', 'செயலற்ற')}
                               </span>
                               {isExpired && (
-                                <span className="rounded-full bg-red-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-red-700">
+                                <span className="rounded-full bg-red-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-red-700">
                                   Expired
                                 </span>
                               )}
                               {!isExpired && isExhausted && (
-                                <span className="rounded-full bg-orange-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-orange-700">
+                                <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-orange-700">
                                   Limit reached
                                 </span>
                               )}
                             </div>
 
-                            <p className="text-[13px] font-semibold text-[#8B2332]">
+                            <p className="text-[12px] font-semibold text-[#7e22ce]">
                               {coupon.percentage}% off
-                              {coupon.min_order_value > 0 && ` • min ₹${coupon.min_order_value}`}
+                              {coupon.min_order_value > 0 && ` • min RM${coupon.min_order_value}`}
                             </p>
 
-                            <p className="text-[12px] text-[#6C665C]">
+                            <p className="text-[11px] text-[#6C665C]">
                               Used {coupon.usage_count}{coupon.usage_limit ? `/${coupon.usage_limit}` : ''} times
                               {coupon.expiry_date ? ` • expires ${new Date(coupon.expiry_date).toLocaleDateString('en-IN')}` : ''}
                             </p>
                           </div>
 
-                          <div className="flex shrink-0 items-center gap-2">
+                          <div className="flex shrink-0 items-center gap-1.5">
                             <button
                               onClick={() => void toggleCoupon(coupon)}
-                              className={`rounded-full px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] transition-colors ${
-                                coupon.is_active ? 'bg-[#FCE7EA] text-[#8B2332] hover:bg-[#F8D7DD]' : 'bg-[#F8EDD9] text-[#9A6700] hover:bg-[#F2E0B9]'
+                              className={`rounded-full px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] transition-colors ${
+                                coupon.is_active ? 'bg-[#FCE7EA] text-[#7e22ce] hover:bg-[#F8D7DD]' : 'bg-[#F8EDD9] text-[#9A6700] hover:bg-[#F2E0B9]'
                               }`}
                             >
                               {coupon.is_active ? l('Active', 'செயலில்') : l('Off', 'ஆஃப்')}
                             </button>
                             <button
                               onClick={() => startEditCoupon(coupon)}
-                              className="rounded-full border border-[#E7D9BF] bg-white p-2.5 text-[#8B2332] transition-colors hover:border-[#D8BA8A] hover:text-[#741D2A]"
+                              className="rounded-full border border-[#E7D9BF] bg-white p-2 text-[#7e22ce] transition-colors hover:border-[#D8BA8A] hover:text-[#741D2A]"
                             >
-                              <Edit2 size={16} />
+                              <Edit2 size={14} />
                             </button>
                             <button
                               onClick={() => void deleteCoupon(coupon)}
-                              className="rounded-full border border-[#F4D4D4] bg-white p-2.5 text-red-500 transition-colors hover:bg-red-50 hover:text-red-700"
+                              className="rounded-full border border-[#F4D4D4] bg-white p-2 text-red-500 transition-colors hover:bg-red-50 hover:text-red-700"
                             >
-                              <Trash2 size={16} />
+                              <Trash2 size={14} />
                             </button>
                           </div>
                         </div>
@@ -3238,7 +3410,7 @@ export default function Dashboard() {
                   })}
 
                   {coupons.length === 0 && (
-                    <div className="rounded-[22px] border border-dashed border-[#E7CFAA] bg-[#FFF8F3] py-12 text-center text-[14px] font-bold text-[#8B2332]">
+                    <div className="rounded-xl border border-dashed border-[#E7CFAA] bg-[#FFF8F3] py-8 text-center text-[13px] font-bold text-[#7e22ce]">
                       {l('No coupons yet. Create your first coupon!', 'இன்னும் கூப்பன் இல்லை. முதல் கூப்பனை உருவாக்குங்கள்!')}
                     </div>
                   )}
@@ -3260,7 +3432,7 @@ export default function Dashboard() {
             <div className="relative max-w-sm">
               <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6B7280]" />
               <input
-                className="w-full pl-11 pr-4 py-3 bg-white border border-[#D1D5DB] rounded-xl text-[13px] font-bold text-[#111111] placeholder-[#6B7280] focus:outline-none focus:border-maroon-dark transition-colors shadow-sm"
+                className="w-full pl-11 pr-4 py-3 bg-white border border-[#D1D5DB] rounded-xl text-[13px] font-bold text-[#111111] placeholder-[#6B7280] focus:outline-none focus:border-primary transition-colors shadow-sm"
                 placeholder={l('Search by name or email...', 'à®ªà¯†à®¯à®°à¯ à®…à®²à¯à®²à®¤à¯ à®®à®¿à®©à¯à®©à®žà¯à®šà®²à®¾à®²à¯ à®¤à¯‡à®Ÿà¯à®•...')}
                 value={userSearch}
                 onChange={e => setUserSearch(e.target.value)}

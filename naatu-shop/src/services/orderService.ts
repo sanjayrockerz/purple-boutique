@@ -56,7 +56,7 @@ export const createOrderWithStock = async (input: CreateOrderInput): Promise<Cre
   let data: unknown = null
   let error: unknown = null
 
-  const newRpcResult = await supabase.rpc('create_order_with_stock', {
+  const newRpcResult = await supabase.rpc('create_order_without_stock', {
     p_customer_name:     customerName,
     p_phone:             phone,
     p_address:           address,
@@ -81,7 +81,11 @@ export const createOrderWithStock = async (input: CreateOrderInput): Promise<Cre
   if (error) {
     if (typeof error === 'object' && error !== null && 'message' in error) {
       const err = error as { message: unknown; details?: unknown }
-      throw new Error(String(err.message) + (err.details ? ` (${String(err.details)})` : ''))
+      const message = String(err.message)
+      if (message.toLowerCase().includes('insufficient stock')) {
+        throw new Error(message)
+      }
+      throw new Error(message + (err.details ? ` (${String(err.details)})` : ''))
     }
     throw new Error(String(error))
   }

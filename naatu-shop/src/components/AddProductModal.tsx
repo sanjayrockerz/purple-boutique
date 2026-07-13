@@ -62,24 +62,28 @@ export default function AddProductModal({ isOpen, onClose, onSuccess }: AddProdu
     setError('')
     try {
       let categoryName = formData.category.trim()
+      let categoryId: number | null = null
       const existing = categories.find(c => c.name_en.toLowerCase() === categoryName.toLowerCase())
+      if (existing) categoryId = existing.id
       if (!existing) {
         const { data: newCat, error: catErr } = await supabase.from('categories').insert({
           name_en: categoryName,
-          name_ta: categoryName,
           is_active: true,
         }).select('id, name_en').single()
         if (catErr) throw catErr
         if (newCat) {
           setCategories(prev => [...prev, newCat as Category])
           categoryName = (newCat as Category).name_en
+          categoryId = (newCat as Category).id
         }
       }
 
       const { error: dbErr } = await supabase.from('products').insert({
         name: formData.name.trim(),
         category: categoryName,
+        category_id: categoryId,
         price: Number(formData.price),
+        stock_quantity: Number(formData.stock),
         stock: Number(formData.stock),
         is_active: true,
         unit: '1pc',
@@ -92,7 +96,10 @@ export default function AddProductModal({ isOpen, onClose, onSuccess }: AddProdu
       onSuccess()
       onClose()
     } catch (err: any) {
-      setError(err.message || 'Failed to add product')
+      const message = String(err?.message || '')
+      setError(message.toLowerCase().includes('row-level security')
+        ? 'Catalog editing is blocked by Supabase RLS. Set your signed-in profile role to admin, then sign in again.'
+        : message || 'Failed to add product')
     } finally {
       setLoading(false)
     }

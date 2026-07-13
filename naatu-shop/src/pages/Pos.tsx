@@ -18,10 +18,12 @@ import {
   formatCurrency,
   formatQuantityDisplay,
 } from '../lib/retail'
-import { buildProfessionalWhatsAppMessage } from '../lib/whatsappMessage'
+import { buildProfessionalWhatsAppMessage, publicInvoiceUrl } from '../lib/whatsappMessage'
 import { getProductImage, onImgError } from '../lib/productImages'
 import { normalizeMalaysianPhone, toWhatsAppUrl } from '../lib/phone'
 import { generatePDFInvoice } from '../lib/pdfInvoice'
+import { invoicePdfFile } from '../lib/invoicePdf'
+import { uploadInvoicePdf } from '../lib/storage'
 
 import type { ProductVariant } from '../services/variantService'
 
@@ -59,6 +61,7 @@ type InvoiceSnap = {
   amountReceived: number
   balanceReturned: number
   paymentMode: string
+  invoicePdfUrl?: string
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -240,6 +243,7 @@ export default function Pos(props: PosProps = {}) {
   // Manual product addition (minimal, non-destructive)
   const [manualName, setManualName] = useState('')
   const [manualPrice, setManualPrice] = useState('')
+  const [customItemOpen, setCustomItemOpen] = useState(false)
   const addManualItem = () => {
     setError('')
     const name = manualName.trim()
@@ -273,6 +277,7 @@ export default function Pos(props: PosProps = {}) {
     }
     setManualName('')
     setManualPrice('')
+    setCustomItemOpen(false)
     setItems(cur => [...cur, { ...makePosItem(prod), source: 'manual' }])
     setMobilePanelView('catalogue')
   }
@@ -420,7 +425,7 @@ export default function Pos(props: PosProps = {}) {
         totalGst,
         gstEnabled: billGstEnabled,
       })
-      setInvoice({
+      const createdInvoice: InvoiceSnap = {
         id: created.orderId,
         invoiceNo: created.invoiceNo,
         orderType: getOrderType(),
@@ -441,7 +446,9 @@ export default function Pos(props: PosProps = {}) {
         amountReceived: cashReceivedNum,
         balanceReturned: balanceToReturn,
         paymentMode: orderMode === 'online' ? 'Online' : cashReceivedNum > 0 ? 'Cash' : 'POS',
-      })
+      }
+      setInvoice(createdInvoice)
+      void persistInvoicePdf(createdInvoice)
       setItems([])
       setCustomer({ name: '', phone: '', address: '' })
       void fetchProducts()
@@ -460,7 +467,49 @@ export default function Pos(props: PosProps = {}) {
   const change = cashReceived && Number(cashReceived) >= total
     ? Number(cashReceived) - total : null
 
+  const persistInvoicePdf = async (inv: InvoiceSnap) => {
+    try {
+      const file = invoicePdfFile({
+        invoiceNo: inv.invoiceNo,
+        date: inv.date,
+        customerName: inv.customerName,
+        phone: inv.phone,
+        address: inv.address,
+        items: inv.items.map(item => ({ name: item.name, qty: item.qty, unit: item.selectedUnit, price: item.basePrice, line_total: item.lineTotal })),
+        subtotal: inv.subtotal,
+        shipping: inv.shipping,
+        total: inv.total,
+        discountAmount: inv.couponDiscount,
+        manualDiscountAmount: inv.manualDiscountAmount,
+        gstAmount: inv.gstAmount,
+        couponCode: inv.couponCode,
+        paymentMode: inv.paymentMode,
+      })
+      const url = await uploadInvoicePdf(file, inv.invoiceNo)
+      await supabase.from('orders').update({ invoice_pdf_url: url, payment_mode: inv.paymentMode, total_gst: inv.gstAmount, total: inv.total }).eq('id', inv.id)
+      setInvoice(current => current?.id === inv.id ? { ...current, invoicePdfUrl: url } : current)
+    } catch (err) {
+      console.warn('Invoice PDF could not be stored:', err)
+    }
+  }
+
   const sendPosWhatsApp = async (inv: InvoiceSnap) => {
+    const message = buildProfessionalWhatsAppMessage({
+      customerName: inv.customerName,
+      phone: inv.phone,
+      invoiceNumber: inv.invoiceNo,
+      invoiceUrl: publicInvoiceUrl(inv.invoiceNo),
+      paymentMode: inv.paymentMode || 'POS',
+      items: inv.items.map((item) => ({ name: item.name, qty: item.qty, unit: item.selectedUnit, unitType: item.unitType, rate: item.basePrice, lineTotal: item.lineTotal })),
+      subtotal: inv.subtotal,
+      couponDiscount: inv.couponDiscount,
+      manualDiscountAmount: inv.manualDiscountAmount,
+      shipping: inv.shipping,
+      gstAmount: inv.gstAmount,
+      total: inv.total,
+    })
+    window.open(`${toWhatsAppUrl(inv.phone || customer.phone || '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer')
+    return
     const pdfBlob = generatePDFInvoice({
       invoiceNo: inv.invoiceNo,
       date: inv.date,
@@ -486,7 +535,7 @@ export default function Pos(props: PosProps = {}) {
       try {
         await navigator.share({
           files: [pdfFile],
-          text: buildProfessionalWhatsAppMessage({
+          text: `${buildProfessionalWhatsAppMessage({
             customerName: inv.customerName,
             phone: inv.phone,
             invoiceNumber: inv.invoiceNo,
@@ -505,7 +554,7 @@ export default function Pos(props: PosProps = {}) {
             shipping: inv.shipping,
             gstAmount: inv.gstAmount,
             total: inv.total,
-          }),
+          })}${inv.invoicePdfUrl ? `\n\nInvoice PDF: ${inv.invoicePdfUrl}` : ''}`,
           title: `Invoice ${inv.invoiceNo}`,
         })
         return
@@ -516,7 +565,7 @@ export default function Pos(props: PosProps = {}) {
     a.href = url; a.download = `Invoice-${inv.invoiceNo}.pdf`; a.click()
     URL.revokeObjectURL(url)
     const waLink = toWhatsAppUrl(inv.phone || customer.phone || '')
-    const text = encodeURIComponent(buildProfessionalWhatsAppMessage({
+    const text = encodeURIComponent(`${buildProfessionalWhatsAppMessage({
       customerName: inv.customerName,
       phone: inv.phone,
       invoiceNumber: inv.invoiceNo,
@@ -535,7 +584,7 @@ export default function Pos(props: PosProps = {}) {
       shipping: inv.shipping,
       gstAmount: inv.gstAmount,
       total: inv.total,
-    }))
+    })}${inv.invoicePdfUrl ? `\n\nInvoice PDF: ${inv.invoicePdfUrl}` : ''}`)
     window.open(`${waLink}?text=${text}`, '_blank')
   }
 
@@ -701,10 +750,10 @@ export default function Pos(props: PosProps = {}) {
       </div>
 
       {/* Main Content Split */}
-      <div className="flex flex-col lg:flex-row gap-5 md:gap-6 px-4 md:px-6 pb-24 md:pb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2.1fr)_minmax(360px,1fr)] items-start gap-5 md:gap-6 px-4 md:px-6 pb-24 md:pb-6">
         
         {/* LEFT COLUMN (approx 68%) */}
-        <div className="flex-[2.1] flex flex-col gap-6">
+        <div className="min-w-0 flex flex-col gap-6">
           
           {/* Customer Details Card */}
           <div className="bg-white rounded-2xl border border-[#EAD7B7]/40 shadow-sm p-4 md:p-5">
@@ -764,17 +813,24 @@ export default function Pos(props: PosProps = {}) {
               <Plus size={12} /> ADD TO CATALOG
             </button>
           </div>
-          <div className="flex items-center gap-2 mt-2 p-2 bg-purple-50 rounded-xl border border-purple-100">
-            <input type="text" value={manualName} onChange={e => setManualName(e.target.value)} placeholder="Item name" className="flex-1 h-10 px-3 bg-white border border-[#EAD7B7]/60 rounded-lg text-[13px] font-bold text-[#2C392A] placeholder:text-gray-400 outline-none focus:border-[#7e22ce]" />
-            <input type="number" value={manualPrice} onChange={e => setManualPrice(e.target.value)} placeholder="Price" className="w-24 h-10 px-3 bg-white border border-[#EAD7B7]/60 rounded-lg text-[13px] font-bold text-[#2C392A] placeholder:text-gray-400 outline-none focus:border-[#7e22ce]" />
-            <button onClick={addManualItem} disabled={!manualName.trim() || !(Number(manualPrice) > 0)} className="h-10 px-4 rounded-lg bg-[#7e22ce] text-white text-[12px] font-black hover:bg-[#5b189e] disabled:opacity-50 transition-colors whitespace-nowrap">
-              ADD ITEM
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setCustomItemOpen(open => !open)}
+            className="mt-2 min-h-[44px] w-full rounded-lg border border-[#7e22ce] px-3 py-2 text-[12px] font-black text-[#7e22ce] transition-colors hover:bg-[#7e22ce]/5"
+          >
+            + ADD CUSTOM ITEM
+          </button>
+          {customItemOpen && (
+            <form onSubmit={e => { e.preventDefault(); addManualItem() }} className="mt-3 grid grid-cols-1 gap-2 rounded-xl border border-purple-200/60 bg-purple-50/20 p-3 md:grid-cols-[minmax(0,1fr)_150px_auto]">
+              <input autoFocus required type="text" value={manualName} onChange={e => setManualName(e.target.value)} placeholder="Item name" className="h-10 rounded-lg border border-purple-200/70 bg-white px-3 text-[12px] font-bold text-gray-800 outline-none focus:border-primary" />
+              <input required min="0.01" step="0.01" type="number" value={manualPrice} onChange={e => setManualPrice(e.target.value)} placeholder="Price (RM)" className="h-10 rounded-lg border border-purple-200/70 bg-white px-3 text-[12px] font-bold text-gray-800 outline-none focus:border-primary" />
+              <button type="submit" className="h-10 rounded-lg bg-primary px-4 text-[11px] font-black text-white hover:bg-primary-dark">ADD ITEM</button>
+            </form>
+          )}
             </div>
 
             {/* Table Header */}
-            <div className="hidden md:grid grid-cols-[1fr_100px_120px_40px] gap-3 px-5 py-3 border-b border-[#EAD7B7]/20 bg-[#FAFAFA]">
+            <div className="hidden md:grid min-w-0 grid-cols-[minmax(0,1fr)_100px_120px_40px] gap-3 px-5 py-3 border-b border-[#EAD7B7]/20 bg-[#FAFAFA]">
               <span className="text-[10px] font-black text-[#5F6D59] tracking-wider uppercase">Item Name / Description</span>
               <span className="text-[10px] font-black text-[#5F6D59] tracking-wider uppercase text-right">Price (RM)</span>
               <span className="text-[10px] font-black text-[#5F6D59] tracking-wider uppercase text-center">Qty</span>
@@ -858,7 +914,7 @@ export default function Pos(props: PosProps = {}) {
                     </div>
                   </div>
 
-                  <div className="hidden md:grid grid-cols-[1fr_100px_120px_40px] items-center gap-3 p-2 bg-white border border-[#EAD7B7]/30 rounded-xl hover:border-[#7e22ce]/30 transition-colors">
+                  <div className="hidden md:grid min-w-0 grid-cols-[minmax(0,1fr)_100px_120px_40px] items-center gap-3 p-2 bg-white border border-[#EAD7B7]/30 rounded-xl hover:border-[#7e22ce]/30 transition-colors">
                     {/* Item Name */}
                     <div className="min-w-0 flex items-center gap-2">
                       {item.source === 'manual' ? (
@@ -924,7 +980,7 @@ export default function Pos(props: PosProps = {}) {
         </div>
 
         {/* RIGHT COLUMN (approx 32%) */}
-        <div className="flex-[1] flex flex-col gap-6 lg:sticky lg:top-4 lg:max-h-[calc(100vh-100px)]">
+        <div className="min-w-0 flex flex-col gap-6 lg:sticky lg:top-4 lg:max-h-[calc(100vh-100px)]">
           <div className="bg-[#FAF9F6] rounded-2xl border border-[#EAD7B7]/60 shadow-sm overflow-hidden flex flex-col h-full max-h-full">
             
 {/* Header */}

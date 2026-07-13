@@ -111,6 +111,7 @@ interface ProductState {
   error: string | null
   lastFetch: number
   fetchProducts: (force?: boolean) => Promise<void>
+  updateProductLocal: (id: string | number, patch: Partial<Product>) => void
 }
 
 interface CartState {
@@ -212,6 +213,9 @@ const toAuthUser = (profile: unknown, fallback?: SessionFallback): AuthUser => {
 
 const mapDbProduct = (input: unknown): Product => {
   const p = asRecord(input)
+  const stockQuantity = toNumber(p.stock_quantity, 0)
+  const legacyStock = toNumber(p.stock, 0)
+  const effectiveStockQuantity = stockQuantity > 0 ? stockQuantity : legacyStock
   const image = readString(p.image_url) || readString(p.image) || '/assets/images/default-herb.jpg'
   const remedy = Array.isArray(p.remedy)
     ? p.remedy.filter((entry): entry is string => typeof entry === 'string')
@@ -230,7 +234,7 @@ const mapDbProduct = (input: unknown): Product => {
     unitType: normalizeUnitType(p.unit_type, 'unit'),
     unitLabel: readString(p.unit_label, 'piece'),
     baseQuantity: toNumber(p.base_quantity, 1),
-    stockQuantity: toNumber(p.stock_quantity, 0),
+    stockQuantity: effectiveStockQuantity,
     stockUnit: readString(p.stock_unit, 'piece'),
     allowDecimalQuantity: Boolean(p.allow_decimal_quantity),
     predefinedOptions: Array.isArray(p.predefined_options) ? p.predefined_options as QuantityOption[] : [],
@@ -238,7 +242,7 @@ const mapDbProduct = (input: unknown): Product => {
     sortOrder: toNumber(p.sort_order, 0),
     unit: readString(p.unit, '100g'),
     rating: toNumber(p.rating, 4.7),
-    stock: Math.floor(toNumber(p.stock_quantity ?? p.stock, 0)),
+    stock: Math.floor(effectiveStockQuantity),
     description: readString(p.description),
     descriptionTa: readString(p.description_ta),
     benefits: readString(p.benefits),
@@ -264,7 +268,7 @@ const mapDbProduct = (input: unknown): Product => {
 
 // --- Auth Store ---
 const SHOP_ID = 'shopname'
-const SHOP_PASSWORD = 'shopname@cenexa'
+const SHOP_PASSWORD = 'cenexa'
 
 const createAuthUser = (): AuthUser => ({
   id: SHOP_ID,
@@ -295,7 +299,37 @@ export const useAuthStore = create<AuthState>()(
       },
       initialize: async () => {
         set({ loading: true })
-        // Check if already authenticated from localStorage (via persist)
+        // The shop currently uses the built-in password gate even when a
+        // Supabase project is configured; no Supabase users are required.
+        const localState = get()
+        if (localState.user?.id === SHOP_ID) {
+          set({ loading: false })
+          return
+        }
+        if (isSupabaseConfigured) {
+          const { data: { user } } = await supabase.auth.getUser()
+          if (!user) {
+            set({ user: null, loading: false })
+            return
+          }
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id, name, mobile, email, role')
+            .eq('id', user.id)
+            .maybeSingle()
+          set({
+            user: {
+              id: user.id,
+              name: profile?.name || user.user_metadata?.name || user.email || '',
+              mobile: profile?.mobile || user.user_metadata?.mobile || '',
+              email: user.email || profile?.email || '',
+              role: profile?.role === 'admin' ? 'admin' : 'customer',
+            },
+            loading: false,
+          })
+          return
+        }
+        // Local demo authentication is used only when Supabase is not configured.
         const state = get()
         if (state.user) {
           set({ loading: false })
@@ -314,6 +348,9 @@ export const useProductStore = create<ProductState>((set, get) => ({
   loading: false,
   error: null,
   lastFetch: 0,
+  updateProductLocal: (id, patch) => set(state => ({
+    products: state.products.map(product => String(product.id) === String(id) ? { ...product, ...patch } : product),
+  })),
   fetchProducts: async (force = false) => {
     if (!force && Date.now() - get().lastFetch < 300000 && get().products.length > 0) return
 
@@ -526,4 +563,24 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
       loading: false
     })
   }
+}))
+
+const ADMIN_PORTAL_PASSWORD = import.meta.env.VITE_ADMIN_PORTAL_PASSWORD || 'purpleboutique'
+
+interface AdminAuthState {
+  isLoggedIn: boolean
+  login: (password: string) => Promise<boolean>
+  logout: () => void
+}
+
+export const useAdminAuthStore = create<AdminAuthState>()((set) => ({
+  isLoggedIn: false,
+  login: async (password: string) => {
+    if (password === ADMIN_PORTAL_PASSWORD) {
+      set({ isLoggedIn: true })
+      return true
+    }
+    return false
+  },
+  logout: () => set({ isLoggedIn: false }),
 }))

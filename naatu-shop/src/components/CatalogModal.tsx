@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { X, Search, ShoppingBag, Edit2, Trash2 } from 'lucide-react'
 import { useProductStore, type Product } from '../store/store'
 import { supabase } from '../lib/supabase'
@@ -9,19 +9,44 @@ interface CatalogModalProps {
   onAdd: (product: Product) => void
 }
 
+type CategoryOption = { id: string | number; name_en: string }
+
 export default function CatalogModal({ isOpen, onClose, onAdd }: CatalogModalProps) {
-  const { fetchProducts, products } = useProductStore()
+  const { fetchProducts, products, updateProductLocal } = useProductStore()
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState('All')
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [editForm, setEditForm] = useState({ name: '', category: '', price: '' })
   const [editLoading, setEditLoading] = useState(false)
   const [editError, setEditError] = useState('')
+  const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    const loadCategories = async () => {
+      const { data } = await supabase.from('categories').select('id, name_en').eq('is_active', true).order('sort_order')
+      if (!cancelled) setCategoryOptions((data || []) as CategoryOption[])
+    }
+    void loadCategories()
+    return () => { cancelled = true }
+  }, [])
 
   const categories = useMemo(() => {
     const cats = Array.from(new Set(products.filter(p => p.isActive).map(p => p.category))).filter(Boolean)
     return ['All', ...cats]
   }, [products])
+
+  const allCategoryOptions = useMemo(() => {
+    const merged = new Map<string, CategoryOption>()
+    const activeNames = new Set(products.filter(p => p.isActive && p.category.trim()).map(p => p.category.trim().toLowerCase()))
+    categoryOptions.filter(c => c.name_en.trim().toLowerCase() !== 'manual' && activeNames.has(c.name_en.trim().toLowerCase()))
+      .forEach(c => merged.set(c.name_en.trim().toLowerCase(), c))
+    products.filter(p => p.isActive && p.category.trim()).forEach(p => {
+      const key = p.category.trim().toLowerCase()
+      if (key !== 'manual' && !merged.has(key)) merged.set(key, { id: p.categoryId || `product-category-${key}`, name_en: p.category.trim() })
+    })
+    return Array.from(merged.values()).sort((a, b) => a.name_en.localeCompare(b.name_en))
+  }, [categoryOptions, products])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -49,16 +74,41 @@ export default function CatalogModal({ isOpen, onClose, onAdd }: CatalogModalPro
   const saveEdit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editingProduct) return
-    if (!editForm.name.trim()) { setEditError('Name is required'); return }
-    if (!editForm.price) { setEditError('Price is required'); return }
+    const name = editForm.name.trim()
+    const category = editForm.category.trim()
+    const priceText = editForm.price.trim()
+    const price = Number(priceText)
+    if (name.length < 2) { setEditError('Product name must contain at least 2 characters'); return }
+    if (name.length > 120) { setEditError('Product name must be 120 characters or less'); return }
+    if (!category) { setEditError('Select a category'); return }
+    if (!/^\d+(\.\d{1,2})?$/.test(priceText) || !Number.isFinite(price) || price < 0 || price > 1000000) {
+      setEditError('Enter a valid price from RM0.00 to RM1,000,000.00'); return
+    }
     setEditLoading(true)
     setEditError('')
-    const { error } = await supabase.from('products').update({
-      name: editForm.name.trim(),
-      category: editForm.category.trim(),
-      price: Number(editForm.price),
-    }).eq('id', editingProduct.id)
-    if (error) { setEditError(error.message); setEditLoading(false); return }
+    const categoryId = allCategoryOptions.find(c => c.name_en === category)?.id || editingProduct.categoryId || null
+    const { data: updatedProduct, error } = await supabase.from('products').update({
+      name,
+      name_ta: name,
+      tamil_name: name,
+      category,
+      category_id: categoryId,
+      price,
+    }).eq('id', editingProduct.id).select('id, price, category').maybeSingle()
+    if (error) {
+      const message = error.message || ''
+      setEditError(message.toLowerCase().includes('row-level security')
+        ? 'Editing is blocked by Supabase RLS. Run the local-password access migration in supabase/0007_local_password_access.sql.'
+        : `Could not save product: ${message}`)
+      setEditLoading(false)
+      return
+    }
+    if (!updatedProduct) {
+      setEditError('Price was not saved. Run supabase/0007_local_password_access.sql, then try again.')
+      setEditLoading(false)
+      return
+    }
+    updateProductLocal(editingProduct.id, { name, nameTa: name, tamilName: name, category, categoryId, price })
     await fetchProducts(true)
     setEditLoading(false)
     cancelEdit()
@@ -74,7 +124,7 @@ export default function CatalogModal({ isOpen, onClose, onAdd }: CatalogModalPro
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl w-full max-w-4xl flex flex-col shadow-[0_25px_50px_-12px_rgba(126,34,206,0.25)] overflow-hidden border border-borderLight max-h-[85vh]">
+      <div className="bg-white rounded-2xl w-full min-w-0 max-w-[calc(100vw-2rem)] sm:max-w-4xl flex flex-col shadow-[0_25px_50px_-12px_rgba(126,34,206,0.25)] overflow-hidden border border-borderLight max-h-[calc(100vh-2rem)]">
 
         {editingProduct ? (
           <>
@@ -95,15 +145,19 @@ export default function CatalogModal({ isOpen, onClose, onAdd }: CatalogModalPro
               <div className="grid grid-cols-2 gap-4">
                 <div className="form-group">
                   <label className="label-base">Category</label>
-                  <input type="text" value={editForm.category}
+                  <select value={editForm.category}
                     onChange={e => setEditForm({...editForm, category: e.target.value})}
-                    className="input-base" />
+                    className="input-base">
+                    <option value="">Select category</option>
+                    {allCategoryOptions.map(category => <option key={category.id} value={category.name_en}>{category.name_en}</option>)}
+                    {!allCategoryOptions.some(category => category.name_en === editForm.category) && editForm.category && <option value={editForm.category}>{editForm.category}</option>}
+                  </select>
                 </div>
                 <div className="form-group">
                   <label className="label-base">Price (RM)</label>
-                  <input type="number" value={editForm.price}
+                  <input type="text" inputMode="decimal" value={editForm.price}
                     onChange={e => setEditForm({...editForm, price: e.target.value})}
-                    className="input-base text-right" placeholder="0" />
+                    className="input-base text-right" placeholder="0.00" aria-invalid={Boolean(editError)} />
                 </div>
               </div>
               <button type="submit" disabled={editLoading}
@@ -123,7 +177,7 @@ export default function CatalogModal({ isOpen, onClose, onAdd }: CatalogModalPro
                 <X size={20} />
               </button>
             </div>
-            <div className="p-4 border-b border-borderLight bg-white space-y-3">
+            <div className="p-4 border-b border-borderLight bg-white space-y-3 min-w-0">
               <div className="relative">
                 <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-textMuted" />
                 <input type="text" value={search}
@@ -140,17 +194,17 @@ export default function CatalogModal({ isOpen, onClose, onAdd }: CatalogModalPro
                 ))}
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+            <div className="flex-1 min-h-0 min-w-0 overflow-x-hidden overflow-y-auto p-3 sm:p-4 bg-gray-50">
               {filtered.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-textMuted/60 py-12">
                   <ShoppingBag size={48} className="mb-4 opacity-20" />
                   <p className="text-[14px] font-bold">No products found</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div className="grid min-w-0 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                   {filtered.map(product => (
                     <div key={product.id}
-                      className="bg-white border border-borderLight rounded-2xl p-3 flex flex-col gap-2 hover:border-primary/30 hover:shadow-card transition-all group relative">
+                      className="min-w-0 overflow-hidden bg-white border border-borderLight rounded-2xl p-3 flex flex-col gap-2 hover:border-primary/30 hover:shadow-card transition-all group relative">
                       <div className="absolute top-2 right-2 flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10">
                         <button onClick={(e) => { e.stopPropagation(); startEdit(product) }} title="Edit product"
                           className="btn-icon-xs bg-white border border-borderLight text-textMuted hover:text-primary hover:border-primary/40 shadow-soft transition-colors">
@@ -168,7 +222,7 @@ export default function CatalogModal({ isOpen, onClose, onAdd }: CatalogModalPro
                       <div onClick={() => onAdd(product)} className="cursor-pointer">
                         <div className="flex items-end justify-between mt-2 pt-2 border-t border-borderLight/30">
                           <span className="text-[14px] font-black text-textMain">RM{product.price}</span>
-                          <span className="badge-outline text-[9px]">{product.category}</span>
+                          <span className="badge-outline min-w-0 max-w-[58%] truncate text-[9px]">{product.category}</span>
                         </div>
                       </div>
                     </div>

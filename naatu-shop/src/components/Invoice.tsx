@@ -36,6 +36,8 @@ export interface InvoiceProps {
   couponCode?: string | null
   manualDiscountAmount?: number
   gstAmount?: number
+  paymentMode?: string
+  onPrintReceipt?: () => void
 }
 
 export const Invoice: React.FC<InvoiceProps> = ({

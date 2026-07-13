@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 
 const PRODUCT_IMAGE_BUCKET = 'product-images'
+const INVOICE_BUCKET = 'invoices'
 
 const sanitizeFileName = (name: string) =>
   name
@@ -26,4 +27,19 @@ export const uploadProductImage = async (file: File) => {
     .getPublicUrl(filePath)
 
   return data.publicUrl
+}
+
+export const uploadInvoicePdf = async (file: File, invoiceNo: string): Promise<string> => {
+  const safeInvoiceNo = sanitizeFileName(invoiceNo)
+  const filePath = `invoices/${safeInvoiceNo}-${Date.now()}.pdf`
+  const { error: uploadError } = await supabase.storage
+    .from(INVOICE_BUCKET)
+    .upload(filePath, file, { upsert: false, contentType: 'application/pdf' })
+  if (uploadError) {
+    if (uploadError.message.toLowerCase().includes('bucket') && uploadError.message.toLowerCase().includes('not found')) {
+      throw new Error('Invoice storage bucket not found. Please create the "invoices" bucket in Supabase Storage.')
+    }
+    throw uploadError
+  }
+  return supabase.storage.from(INVOICE_BUCKET).getPublicUrl(filePath).data.publicUrl
 }

@@ -1,4 +1,4 @@
-import { BRAND_PHONE_DISPLAY } from './brand'
+import { BRAND_ADDRESS, BRAND_EN, BRAND_PHONE_DISPLAY } from './brand'
 import { formatCurrency } from './retail'
 
 export type WhatsAppLineItem = {
@@ -15,6 +15,7 @@ type BuildWhatsAppMessageInput = {
   phone?: string
   invoiceNumber: string
   invoiceDate?: string
+  invoiceUrl?: string
   paymentMode?: string
   items: WhatsAppLineItem[]
   subtotal: number
@@ -25,76 +26,55 @@ type BuildWhatsAppMessageInput = {
   total: number
 }
 
+export const publicInvoiceUrl = (invoiceNumber: string) =>
+  `${window.location.origin}/invoice/${encodeURIComponent(invoiceNumber)}`
+
 export const buildProfessionalWhatsAppMessage = (input: BuildWhatsAppMessageInput) => {
-  const dateStr = input.invoiceDate || new Date().toLocaleDateString('en-MY', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  const date = input.invoiceDate || new Date().toISOString()
   const customerName = input.customerName || 'Valued Customer'
-  const phone = input.phone || '-'
   const paymentMode = input.paymentMode || 'POS'
-
-  const itemLines = input.items.map(item => (
-    `• ${item.name}\n  Qty : ${item.qty} × ${formatCurrency(item.rate)}\n  Amount : ${formatCurrency(item.lineTotal)}`
-  ))
-
-  const couponLine = (input.couponDiscount || 0) > 0
-    ? `Coupon Discount    : -${formatCurrency(input.couponDiscount || 0)}` : ''
-
-  const manualLine = (input.manualDiscountAmount || 0) > 0
-    ? `Manual Discount    : -${formatCurrency(input.manualDiscountAmount || 0)}` : ''
-
-  const gstLine = (input.gstAmount || 0) > 0
-    ? `GST                : ${formatCurrency(input.gstAmount || 0)}` : ''
-
-  const deliveryLine = (input.shipping || 0) > 0
-    ? `Delivery Charges   : ${formatCurrency(input.shipping || 0)}` : ''
+  const itemLines = input.items.map(item =>
+    `- ${item.name} Qty : ${item.qty} x ${formatCurrency(item.rate)} Amount : ${formatCurrency(item.lineTotal)}`
+  )
+  const optionalLines = [
+    input.couponDiscount ? `Coupon Discount : -${formatCurrency(input.couponDiscount)}` : '',
+    input.manualDiscountAmount ? `Manual Discount : -${formatCurrency(input.manualDiscountAmount)}` : '',
+    input.gstAmount ? `GST : ${formatCurrency(input.gstAmount)}` : '',
+    input.shipping ? `Delivery : ${formatCurrency(input.shipping)}` : '',
+  ].filter(Boolean)
 
   return [
-    `🛍️ *Thank you for shopping with Purple Boutique!*`,
-    '',
+    `Thank you for shopping with ${BRAND_EN}!`,
     `Dear *${customerName}*,`,
+    input.invoiceUrl ? `*Download Invoice PDF:* ${input.invoiceUrl}` : '',
     '',
     `We truly appreciate your purchase and hope you enjoyed your shopping experience with us.`,
-    '',
-    `━━━━━━━━━━━━━━━━━━`,
-    `🧾 *INVOICE SUMMARY*`,
-    `━━━━━━━━━━━━━━━━━━`,
-    '',
+    '------------------',
+    '*INVOICE SUMMARY*',
+    '------------------',
     `Invoice No : ${input.invoiceNumber}`,
-    `Date : ${dateStr}`,
-    '',
+    `Date : ${date}`,
     `Customer : ${customerName}`,
-    `Phone : ${phone}`,
-    '',
-    `━━━━━━━━━━━━━━━━━━`,
-    `🛒 *ITEMS PURCHASED*`,
-    `━━━━━━━━━━━━━━━━━━`,
-    '',
+    `Phone : ${input.phone || '-'}`,
+    '------------------',
+    '*ITEMS PURCHASED*',
+    '------------------',
     ...itemLines,
-    '',
-    `━━━━━━━━━━━━━━━━━━`,
-    `💰 *BILL SUMMARY*`,
-    `━━━━━━━━━━━━━━━━━━`,
-    '',
-    `Subtotal           : ${formatCurrency(input.subtotal)}`,
-    couponLine,
-    manualLine,
-    gstLine,
-    deliveryLine,
-    '',
-    `━━━━━━━━━━━━━━━━━━`,
+    '------------------',
+    '*BILL SUMMARY*',
+    '------------------',
+    `Subtotal : ${formatCurrency(input.subtotal)}`,
+    ...optionalLines,
     `*Grand Total : ${formatCurrency(input.total)}*`,
-    `━━━━━━━━━━━━━━━━━━`,
-    '',
     `Payment Mode : ${paymentMode}`,
     '',
-    `We sincerely thank you for choosing *Purple Boutique*. ❤️`,
-    '',
+    `We sincerely thank you for choosing *${BRAND_EN}*.`,
     `We look forward to serving you again.`,
-    '',
-    `📍 *Purple Boutique*`,
-    `Kuala Lumpur, Malaysia`,
-    '',
-    `📞 ${BRAND_PHONE_DISPLAY}`,
-    '',
-    `Have a wonderful day! 😊`,
+    `*${BRAND_EN}*`,
+    BRAND_ADDRESS,
+    BRAND_PHONE_DISPLAY,
+    'Have a wonderful day!',
   ].filter(Boolean).join('\n')
 }
+
+export const BUSINESS_PHONE = '60123456789'

@@ -1,17 +1,16 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Lock, Unlock, Eye, EyeOff, Building2 } from 'lucide-react'
+import { Lock, Eye, EyeOff, Building2 } from 'lucide-react'
 import { useAuthStore } from '../store/store'
 import { BRAND_EN } from '../lib/brand'
 
 export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { login, initialize } = useAuthStore()
+  const { login, setAuth } = useAuthStore()
 
   const redirectPath = new URLSearchParams(location.search).get('redirect') || '/dashboard'
 
-  const [id, setId] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -22,12 +21,8 @@ export default function Login() {
     setError('')
     setLoading(true)
 
-    // Simulate async login
-    await new Promise(resolve => setTimeout(resolve, 500))
-
-    const success = login(id.trim(), password)
+    const success = login('shopname', password)
     setLoading(false)
-
     if (success) {
       navigate(redirectPath, { replace: true })
     } else {
@@ -56,28 +51,10 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="form-group">
-              <label className="label-base">Shop ID</label>
-              <div className="flex gap-2">
-                <span className="flex items-center px-3 py-3 bg-gray-50 border-2 border-borderLight rounded-xl shrink-0">
-                  <Lock size={14} className="text-textMuted" />
-                </span>
-                <input
-                  type="text"
-                  autoComplete="username"
-                  placeholder="Enter Shop ID"
-                  className="flex-1 input-base"
-                  value={id}
-                  onChange={e => { setId(e.target.value); setError('') }}
-                  disabled={loading}
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
               <label className="label-base">Password</label>
               <div className="flex gap-2">
                 <span className="flex items-center px-3 py-3 bg-gray-50 border-2 border-borderLight rounded-xl shrink-0">
-                  <Unlock size={14} className="text-textMuted" />
+                  <Lock size={14} className="text-textMuted" />
                 </span>
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -110,11 +87,10 @@ export default function Login() {
 
           <div className="border-t border-borderLight pt-4 text-center">
             <p className="text-[11px] text-textMuted font-medium">
-              Default credentials:
+              Enter the store password.
             </p>
             <div className="mt-2 p-3 bg-gray-50 rounded-xl text-[11px] font-mono text-textMain space-y-1">
-              <div><span className="font-bold text-textMuted">ID:</span> shopname</div>
-              <div><span className="font-bold text-textMuted">Password:</span> shopname@cenexa</div>
+              <div><span className="font-bold text-textMuted">Password:</span> cenexa</div>
             </div>
           </div>
         </div>

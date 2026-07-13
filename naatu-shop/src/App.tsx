@@ -150,13 +150,7 @@ function AppShell() {
           />
           <Route
             path="/invoice/:id"
-            element={
-              <ProtectedRoute>
-                <Suspense fallback={<LoadingSpinner />}>
-                  <DigitalInvoice />
-                </Suspense>
-              </ProtectedRoute>
-            }
+            element={<Suspense fallback={<LoadingSpinner />}><DigitalInvoice /></Suspense>}
           />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

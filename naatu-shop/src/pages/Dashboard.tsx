@@ -869,7 +869,7 @@ export default function Dashboard() {
     if (error) {
       const msg = (error as { message?: string }).message || 'Failed to save coupon'
       if (msg.toLowerCase().includes('row-level security')) {
-        setCouponSaveError('Coupon save blocked by Supabase RLS. Make sure your user is admin in profiles.role and run naatu-shop/supabase/fix_coupon_admin_rls.sql once in Supabase SQL Editor.')
+        setCouponSaveError('Coupon saving is blocked by Supabase permissions. Run naatu-shop/supabase/fix_coupon_admin_rls.sql once in the Supabase SQL Editor, then refresh this page.')
       } else {
         setCouponSaveError(msg.includes('unique') || msg.includes('duplicate') ? `Coupon code "${code}" already exists` : msg)
       }

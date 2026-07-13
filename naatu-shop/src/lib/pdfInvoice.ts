@@ -33,13 +33,14 @@ export function generatePDFInvoice(input: PDFInvoiceInput): Blob {
   doc.setFillColor(PURPLE); doc.rect(0, 0, pageW, 4, 'F')
   text(BRAND_EN.toUpperCase(), margin, y + 5, 18, PURPLE_DARK, true)
   text('OFFICIAL SALES INVOICE', margin, y + 11, 7.5, MUTED, true)
-  text(BRAND_ADDRESS, pageW - margin, y + 4, 8, INK, true)
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(INK)
+  doc.text(doc.splitTextToSize(BRAND_ADDRESS, 64), pageW - margin, y + 4, { align: 'right', maxWidth: 64 })
   doc.setFontSize(7.5); doc.setTextColor(MUTED); doc.text(BRAND_EN, pageW - margin, y + 14, { align: 'right' })
   y += 24; line(y, PURPLE, 0.8); y += 10
 
   text('INVOICE', margin, y, 16, PURPLE, true)
   text(`Invoice No: ${input.invoiceNo}`, margin, y + 6, 8.5, MUTED)
-  text('INVOICE DETAILS', pageW - margin, y, 7.5, MUTED, true)
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(MUTED); doc.text('INVOICE DETAILS', pageW - margin, y, { align: 'right' })
   doc.setFontSize(8.5); doc.setTextColor(INK); doc.text(`Date: ${safeDate(input.date)}`, pageW - margin, y + 6, { align: 'right' })
   doc.setTextColor('#15803d'); doc.text('Status: PAID', pageW - margin, y + 12, { align: 'right' }); y += 24
 
@@ -72,7 +73,7 @@ export function generatePDFInvoice(input: PDFInvoiceInput): Blob {
   if ((input.shipping || 0) > 0) totalRow('Delivery Charges', money(input.shipping || 0))
   y += 2; line(y, PURPLE, 0.8); y += 9; totalRow('TOTAL AMOUNT', money(input.total), PURPLE_DARK, true); y += 3; text(`Payment Mode: ${input.paymentMode || 'POS'}`, labelX, y, 8.5, MUTED)
 
-  const footerY = 274; line(footerY, BORDER, 0.5); text('Thank you for shopping with Purple Boutique!', pageW / 2, footerY + 8, 9, PURPLE_DARK, true)
+  const footerY = 274; line(footerY, BORDER, 0.5); doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(PURPLE_DARK); doc.text('Thank you for shopping with Purple Boutique!', pageW / 2, footerY + 8, { align: 'center' })
   doc.setFontSize(7.5); doc.setTextColor(MUTED); doc.text('This is a computer-generated invoice.', pageW / 2, footerY + 20, { align: 'center' }); doc.text('Page 1', pageW - margin, footerY + 20, { align: 'right' })
   return doc.output('blob')
 }

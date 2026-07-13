@@ -33,3 +33,7 @@ After catalog setup, run `0004_billing_backend.sql`. It creates the orders,
 order_items, coupons, and product_variants tables plus the atomic
 `create_order_with_stock` RPC used by Complete Sale, Order History, stock, and
 Analytics.
+
+For this local-password single-store app, run `fix_coupon_admin_rls.sql` after
+the billing migration. It lets the store app create, edit, activate, and delete
+coupons without requiring a Supabase Auth user or `profiles.role = 'admin'`.

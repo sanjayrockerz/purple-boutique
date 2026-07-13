@@ -532,6 +532,20 @@
   outline-offset: 2px;
 }
 
+form.category-manager-form > input:nth-of-type(2) { display: none; }
+
+.billing-history-table .text-\[\#9BAB9A\],
+.billing-history-table span[class*="9BAB9A"] {
+  color: transparent !important;
+  font-size: 0 !important;
+}
+.billing-history-table .text-\[\#9BAB9A\]::after,
+.billing-history-table span[class*="9BAB9A"]::after {
+  content: '—';
+  color: #7a846f;
+  font-size: 12px !important;
+}
+
 ::selection {
   background-color: #7e22ce;
   color: white;

@@ -1,19 +1,1 @@
 /* Empty - reset vite default styles */
-/* Category names are English-only; keep legacy form state harmlessly hidden. */
-form.category-manager-form > input:nth-of-type(2) { display: none; }
-
-/* Old billing rows contained corrupted empty-value placeholders. */
-.billing-history-table .text-\[\#9BAB9A\] {
-  color: transparent !important;
-  font-size: 0 !important;
-}
-.billing-history-table span[class*="9BAB9A"] {
-  color: transparent !important;
-  font-size: 0 !important;
-}
-.billing-history-table .text-\[\#9BAB9A\]::after,
-.billing-history-table span[class*="9BAB9A"]::after {
-  content: '—';
-  color: #7a846f;
-  font-size: 12px !important;
-}

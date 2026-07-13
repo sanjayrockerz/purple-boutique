@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf'
 import { formatCurrency } from './retail'
-import { BRAND_EN, BRAND_ADDRESS, BRAND_PHONE_DISPLAY, BRAND_EMAIL } from './brand'
+import { BRAND_EN, BRAND_ADDRESS } from './brand'
 
 type PDFItem = { name: string; qty: number; rate: number; lineTotal: number }
 type PDFInvoiceInput = {
@@ -34,7 +34,6 @@ export function generatePDFInvoice(input: PDFInvoiceInput): Blob {
   text(BRAND_EN.toUpperCase(), margin, y + 5, 18, PURPLE_DARK, true)
   text('OFFICIAL SALES INVOICE', margin, y + 11, 7.5, MUTED, true)
   text(BRAND_ADDRESS, pageW - margin, y + 4, 8, INK, true)
-  text(`${BRAND_PHONE_DISPLAY}  |  ${BRAND_EMAIL}`, pageW - margin, y + 9, 7.5, MUTED)
   doc.setFontSize(7.5); doc.setTextColor(MUTED); doc.text(BRAND_EN, pageW - margin, y + 14, { align: 'right' })
   y += 24; line(y, PURPLE, 0.8); y += 10
 
@@ -74,6 +73,6 @@ export function generatePDFInvoice(input: PDFInvoiceInput): Blob {
   y += 2; line(y, PURPLE, 0.8); y += 9; totalRow('TOTAL AMOUNT', money(input.total), PURPLE_DARK, true); y += 3; text(`Payment Mode: ${input.paymentMode || 'POS'}`, labelX, y, 8.5, MUTED)
 
   const footerY = 274; line(footerY, BORDER, 0.5); text('Thank you for shopping with Purple Boutique!', pageW / 2, footerY + 8, 9, PURPLE_DARK, true)
-  doc.setFontSize(7.5); doc.setTextColor(MUTED); doc.text(`${BRAND_ADDRESS}  •  ${BRAND_PHONE_DISPLAY}  •  ${BRAND_EMAIL}`, pageW / 2, footerY + 14, { align: 'center' }); doc.text('This is a computer-generated invoice.', pageW / 2, footerY + 20, { align: 'center' }); doc.text('Page 1', pageW - margin, footerY + 20, { align: 'right' })
+  doc.setFontSize(7.5); doc.setTextColor(MUTED); doc.text('This is a computer-generated invoice.', pageW / 2, footerY + 20, { align: 'center' }); doc.text('Page 1', pageW - margin, footerY + 20, { align: 'right' })
   return doc.output('blob')
 }

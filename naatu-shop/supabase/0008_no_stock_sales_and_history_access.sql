@@ -59,6 +59,9 @@ grant execute on function public.create_order_without_stock(text,text,numeric,te
 drop policy if exists "Authenticated users can read orders" on public.orders;
 drop policy if exists "Authenticated users can read order items" on public.order_items;
 drop policy if exists "Authenticated users can read coupons" on public.coupons;
+drop policy if exists "Shop users can read orders" on public.orders;
+drop policy if exists "Shop users can read order items" on public.order_items;
+drop policy if exists "Shop users can read coupons" on public.coupons;
 create policy "Shop users can read orders" on public.orders for select to anon, authenticated using (true);
 create policy "Shop users can read order items" on public.order_items for select to anon, authenticated using (true);
 create policy "Shop users can read coupons" on public.coupons for select to anon, authenticated using (true);

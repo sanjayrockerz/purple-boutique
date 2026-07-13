@@ -27,6 +27,14 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
   return user ? <Navigate to="/dashboard" replace /> : <>{children}</>
 }
 
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const user = useAuthStore((state) => state.user)
+  const loading = useAuthStore((state) => state.loading)
+
+  if (loading) return <LoadingSpinner />
+  return user ? <>{children}</> : <Navigate to="/login" replace />
+}
+
 function AppShell() {
   const initialize = useAuthStore((state) => state.initialize)
   const fetchProducts = useProductStore((state) => state.fetchProducts)
@@ -93,49 +101,61 @@ function AppShell() {
           <Route
             path="/admin"
             element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <Dashboard />
-              </Suspense>
+              <ProtectedRoute>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <Dashboard />
+                </Suspense>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/dashboard"
             element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <Dashboard />
-              </Suspense>
+              <ProtectedRoute>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <Dashboard />
+                </Suspense>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/whatsapp-center"
             element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <Dashboard />
-              </Suspense>
+              <ProtectedRoute>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <Dashboard />
+                </Suspense>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/pos-analytics"
             element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <Dashboard />
-              </Suspense>
+              <ProtectedRoute>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <Dashboard />
+                </Suspense>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/pos"
             element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <Pos />
-              </Suspense>
+              <ProtectedRoute>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <Pos />
+                </Suspense>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/invoice/:id"
             element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <DigitalInvoice />
-              </Suspense>
+              <ProtectedRoute>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <DigitalInvoice />
+                </Suspense>
+              </ProtectedRoute>
             }
           />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

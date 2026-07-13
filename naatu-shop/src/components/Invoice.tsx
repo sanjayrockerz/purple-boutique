@@ -82,10 +82,10 @@ export const Invoice: React.FC<InvoiceProps> = ({
     >
       {/* ── HEADER ────────────────────────────────────────────────── */}
       <div style={{ textAlign: 'center', borderBottom: '1px solid #e5e7eb', paddingBottom: 24, marginBottom: 24 }}>
-        <div style={{ width: 80, height: 80, margin: '0 auto', marginBottom: 12, borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <img src="/zera-logo.png" alt="ZERA Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <div style={{ width: 80, height: 80, margin: '0 auto', marginBottom: 12, borderRadius: 50, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <img src="/Purple boutique logo.jpeg" alt="Purple Boutique Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </div>
-        <div style={{ fontSize: 24, fontWeight: 900, color: '#8B2332', letterSpacing: -0.5, textTransform: 'uppercase' }}>
+        <div style={{ fontSize: 24, fontWeight: 900, color: '#7e22ce', letterSpacing: -0.5, textTransform: 'uppercase' }}>
           {BRAND_EN}
         </div>
         <div style={{ fontSize: 12, color: '#4b5563', marginTop: 4, fontWeight: 500 }}>
@@ -154,7 +154,7 @@ export const Invoice: React.FC<InvoiceProps> = ({
                     <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e' }}>{normalized.name}</div>
                     {displayName && displayName !== normalized.name && <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>{displayName}</div>}
                     {item.offerPrice && item.price !== item.offerPrice && (
-                      <div style={{ fontSize: 10, color: '#aaa', textDecoration: 'line-through', marginTop: 2 }}>MRP ₹{item.price}</div>
+                      <div style={{ fontSize: 10, color: '#aaa', textDecoration: 'line-through', marginTop: 2 }}>MRP RM{item.price}</div>
                     )}
                     <div style={{ fontSize: 10, color: '#6b7280', marginTop: 2 }}>
                       {normalized.unit} · {formatCurrency(normalized.base_price)}

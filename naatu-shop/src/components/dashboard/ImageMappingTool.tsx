@@ -629,7 +629,7 @@ export default function ImageMappingTool() {
                           <option value="">— Map to product (all variants) —</option>
                           {selectedProductVariants.map(v => (
                             <option key={v.id} value={v.id}>
-                              {v.variantName}{v.sizeLabel ? ` · ${v.sizeLabel}` : ''} — ₹{v.price}
+                              {v.variantName}{v.sizeLabel ? ` · ${v.sizeLabel}` : ''} — RM{v.price}
                             </option>
                           ))}
                         </select>
@@ -647,7 +647,7 @@ export default function ImageMappingTool() {
                         <Tag size={15} className="text-[#7DAA8F] shrink-0" />
                         <div className="min-w-0">
                           <p className="text-[13px] font-black text-[#2C392A] truncate">{prod.name}</p>
-                          <p className="text-[11px] text-[#5F6D59]">{prod.category} · ₹{prod.price}</p>
+                          <p className="text-[11px] text-[#5F6D59]">{prod.category} · RM{prod.price}</p>
                           {prod.hasVariants && (
                             <p className="text-[10px] font-bold text-[#7DAA8F]">
                               {selectedProductVariants.length} variant{selectedProductVariants.length !== 1 ? 's' : ''}

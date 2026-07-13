@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   BarChart2,
   Download,
-  IndianRupee,
+  DollarSign,
   LayoutDashboard,
   RefreshCw,
   Search,
@@ -482,7 +482,7 @@ export default function BillingAnalytics() {
       label: l('Total Revenue', 'மொத்த வருவாய்'),
       helper: 'POS + manual completed bills',
       value: formatCurrency(analytics.totalCompletedRevenue),
-      icon: <IndianRupee size={18} />,
+      icon: <DollarSign size={18} />,
       color: 'text-emerald-700',
       bg: 'bg-emerald-50',
     },
@@ -573,8 +573,8 @@ export default function BillingAnalytics() {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div className="admin-logo-lockup min-w-[280px]">
             <div className="admin-logo-mark shrink-0 rounded-[22px] border border-[#EAD7B7] bg-white p-2 shadow-[0_10px_28px_rgba(17,24,39,0.10)]">
-              <div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-[#FCFBF7] ring-1 ring-[#F2E7D2]">
-                <img src="/zera-logo.png" alt="Zera logo" className="h-10 w-10 object-contain" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#FCFBF7] ring-1 ring-[#F2E7D2] overflow-hidden">
+                <img src="/Purple boutique logo.jpeg" alt="Purple Boutique Logo" className="h-full w-full object-cover" />
               </div>
             </div>
             <div className="min-w-0">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { useProductStore } from '../store/store'
 import { supabase } from '../lib/supabase'
@@ -9,30 +9,76 @@ interface AddProductModalProps {
   onSuccess: () => void
 }
 
+type Category = { id: number; name_en: string }
+
 export default function AddProductModal({ isOpen, onClose, onSuccess }: AddProductModalProps) {
   const { fetchProducts } = useProductStore()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [categories, setCategories] = useState<Category[]>([])
+  const [showDropdown, setShowDropdown] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState({
     name: '',
-    category: 'Manual',
+    category: '',
     price: '',
     stock: '10'
   })
 
+  useEffect(() => {
+    if (isOpen) {
+      supabase.from('categories').select('id, name_en').order('name_en').then(({ data }) => {
+        setCategories((data || []) as Category[])
+      })
+      setFormData({ name: '', category: '', price: '', stock: '10' })
+      setError('')
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
   if (!isOpen) return null
+
+  const filtered = categories.filter(c =>
+    c.name_en.toLowerCase().includes(formData.category.toLowerCase())
+  )
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.name.trim()) return setError('Name is required')
     if (!formData.price) return setError('Price is required')
-    
+    if (!formData.category.trim()) return setError('Category is required')
+
     setLoading(true)
     setError('')
     try {
+      let categoryName = formData.category.trim()
+      const existing = categories.find(c => c.name_en.toLowerCase() === categoryName.toLowerCase())
+      if (!existing) {
+        const { data: newCat, error: catErr } = await supabase.from('categories').insert({
+          name_en: categoryName,
+          name_ta: categoryName,
+          is_active: true,
+        }).select('id, name_en').single()
+        if (catErr) throw catErr
+        if (newCat) {
+          setCategories(prev => [...prev, newCat as Category])
+          categoryName = (newCat as Category).name_en
+        }
+      }
+
       const { error: dbErr } = await supabase.from('products').insert({
         name: formData.name.trim(),
-        category: formData.category.trim(),
+        category: categoryName,
         price: Number(formData.price),
         stock: Number(formData.stock),
         is_active: true,
@@ -53,56 +99,72 @@ export default function AddProductModal({ isOpen, onClose, onSuccess }: AddProdu
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-3xl w-full max-w-md flex flex-col shadow-2xl overflow-hidden border border-[#EAD7B7]/40">
-        
-        <div className="flex items-center justify-between p-6 border-b border-[#EAD7B7]/40 bg-[#F7F6F2]">
-          <h2 className="text-xl font-black text-[#2C392A]">Add to Catalog</h2>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-black/5 text-[#5F6D59]">
+    <div className="modal-overlay">
+      <div className="modal-container max-w-md">
+        <div className="modal-header">
+          <h2 className="modal-title">Add to Catalog</h2>
+          <button onClick={onClose} className="modal-close">
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
-          {error && <div className="text-red-500 text-sm font-bold bg-red-50 p-3 rounded-xl">{error}</div>}
-          
-          <div>
-            <label className="block text-[10px] font-black text-[#5F6D59] tracking-wider uppercase mb-1.5">Product Name</label>
-            <input 
-              type="text" 
+        <form onSubmit={handleSubmit} className="modal-body space-y-4">
+          {error && <div className="form-error bg-error/10 p-3 rounded-xl">{error}</div>}
+
+          <div className="form-group">
+            <label className="label-base">Product Name</label>
+            <input
+              type="text"
               value={formData.name}
               onChange={e => setFormData({...formData, name: e.target.value})}
-              className="w-full px-4 py-3 bg-[#F7F6F2] border border-[#EAD7B7]/60 rounded-xl focus:outline-none focus:border-[#8B2332] text-[13px] font-bold"
+              className="input-base"
               placeholder="E.g. Premium Shawl"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[10px] font-black text-[#5F6D59] tracking-wider uppercase mb-1.5">Category</label>
-              <input 
-                type="text" 
+            <div className="form-group relative" ref={dropdownRef}>
+              <label className="label-base">Category</label>
+              <input
+                ref={inputRef}
+                type="text"
                 value={formData.category}
-                onChange={e => setFormData({...formData, category: e.target.value})}
-                className="w-full px-4 py-3 bg-[#F7F6F2] border border-[#EAD7B7]/60 rounded-xl focus:outline-none focus:border-[#8B2332] text-[13px] font-bold"
+                onFocus={() => setShowDropdown(true)}
+                onChange={e => { setFormData({...formData, category: e.target.value}); setShowDropdown(true) }}
+                className="input-base"
+                placeholder="Type or select..."
               />
+              {showDropdown && filtered.length > 0 && (
+                <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-[#EAD7B7] rounded-xl shadow-lg max-h-40 overflow-y-auto">
+                  {filtered.map(c => (
+                    <button
+                      type="button"
+                      key={c.id}
+                      onClick={() => { setFormData(f => ({...f, category: c.name_en})); setShowDropdown(false) }}
+                      className="w-full text-left px-3 py-2 text-[13px] font-medium text-[#2C392A] hover:bg-purple-50 transition-colors"
+                    >
+                      {c.name_en}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-            <div>
-              <label className="block text-[10px] font-black text-[#5F6D59] tracking-wider uppercase mb-1.5">Price (₹)</label>
-              <input 
-                type="number" 
+            <div className="form-group">
+              <label className="label-base">Price (RM)</label>
+              <input
+                type="number"
                 value={formData.price}
                 onChange={e => setFormData({...formData, price: e.target.value})}
-                className="w-full px-4 py-3 bg-[#F7F6F2] border border-[#EAD7B7]/60 rounded-xl focus:outline-none focus:border-[#8B2332] text-[13px] font-bold text-right"
+                className="input-base text-right"
                 placeholder="0"
               />
             </div>
           </div>
 
-          <button 
+          <button
             type="submit"
             disabled={loading}
-            className="mt-4 w-full py-3.5 bg-[#8B2332] hover:bg-[#6b1a25] text-white rounded-xl text-[13px] font-black uppercase tracking-wider transition-colors disabled:opacity-50"
+            className="btn-primary btn-block mt-2"
           >
             {loading ? 'Adding...' : 'Save Product'}
           </button>

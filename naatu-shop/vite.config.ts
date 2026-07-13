@@ -20,6 +20,8 @@ export default defineConfig({
     },
   },
   server: {
+    port: 3000,
+    host: true,
     headers: {
       'X-Content-Type-Options': 'nosniff',
       'X-Frame-Options': 'DENY',

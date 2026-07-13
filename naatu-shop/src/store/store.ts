@@ -101,6 +101,7 @@ interface AuthState {
   isAdmin: () => boolean
   setAuth: (user: AuthUser | null) => void
   logout: () => Promise<void>
+  login: (id: string, password: string) => boolean
   initialize: () => Promise<void>
 }
 
@@ -262,6 +263,17 @@ const mapDbProduct = (input: unknown): Product => {
 }
 
 // --- Auth Store ---
+const SHOP_ID = 'shopname'
+const SHOP_PASSWORD = 'shopname@cenexa'
+
+const createAuthUser = (): AuthUser => ({
+  id: SHOP_ID,
+  name: 'Purple Boutique Admin',
+  email: 'admin@purpleboutique.my',
+  mobile: '+60 12-345 6789',
+  role: 'admin' as const,
+})
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get): AuthState => ({
@@ -271,71 +283,28 @@ export const useAuthStore = create<AuthState>()(
       isAdmin: () => get().user?.role === 'admin',
       setAuth: (user: AuthUser | null) => set({ user, loading: false }),
       logout: async () => {
-        await supabase.auth.signOut()
         set({ user: null, loading: false })
+      },
+      login: (id: string, password: string) => {
+        if (id === SHOP_ID && password === SHOP_PASSWORD) {
+          const user = createAuthUser()
+          set({ user, loading: false })
+          return true
+        }
+        return false
       },
       initialize: async () => {
         set({ loading: true })
-        try {
-          const { data: { session } } = await supabase.auth.getSession()
-          if (session?.user) {
-            let { data: profile } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single()
-
-            const meta = session.user.user_metadata || {}
-            const email = session.user.email || ''
-            const metaName  = String(meta.full_name || meta.name || (email ? email.split('@')[0] : 'Customer'))
-            const metaMobile = String(meta.mobile || meta.phone || '')
-
-            if (!profile) {
-              // Bootstrap profile for users signed up before the DB trigger existed
-              const role = 'customer'
-              const { data: upserted } = await supabase
-                .from('profiles')
-                .upsert({
-                  id: session.user.id,
-                  email,
-                  name: metaName,
-                  mobile: metaMobile,
-                  role,
-                }, { onConflict: 'id' })
-                .select()
-                .single()
-              profile = upserted
-            } else {
-              // Profile exists — backfill missing fields from user_metadata
-              // (handles users who signed up before phone field was added to the form)
-              const needsUpdate: Record<string, string> = {}
-              if (!profile.mobile && metaMobile) needsUpdate.mobile = metaMobile
-              if (!profile.name   && metaName)   needsUpdate.name   = metaName
-              if (!profile.email  && email)       needsUpdate.email  = email
-
-              if (Object.keys(needsUpdate).length > 0) {
-                const { data: updated } = await supabase
-                  .from('profiles')
-                  .update(needsUpdate)
-                  .eq('id', session.user.id)
-                  .select()
-                  .single()
-                if (updated) profile = updated
-              }
-            }
-
-            set({ user: toAuthUser(profile, session.user) })
-          } else {
-            set({ user: null })
-          }
-        } catch (e) {
-          console.error('Auth init error', e)
-        } finally {
+        // Check if already authenticated from localStorage (via persist)
+        const state = get()
+        if (state.user) {
           set({ loading: false })
+        } else {
+          set({ user: null, loading: false })
         }
       }
     }),
-    { name: 'sri-siddha-auth' }
+    { name: 'purple-boutique-auth' }
   )
 )
 

@@ -569,7 +569,9 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
 }))
 
 // --- Admin Auth Store ---
+const ADMIN_PORTAL_ID = String(import.meta.env.VITE_ADMIN_ID || '')
 const ADMIN_PORTAL_PASSWORD = String(import.meta.env.VITE_ADMIN_PASSWORD || '')
+const STAFF_PORTAL_ID = String(import.meta.env.VITE_STAFF_ID || ADMIN_PORTAL_ID)
 const STAFF_PORTAL_PASSWORD = String(import.meta.env.VITE_STAFF_PASSWORD || '')
 
 export type AdminRole = 'admin' | 'staff' | null
@@ -577,7 +579,7 @@ export type AdminRole = 'admin' | 'staff' | null
 interface AdminAuthState {
   isLoggedIn: boolean
   role: AdminRole
-  login: (password: string) => Promise<AdminRole | false>
+  login: (portalId: string, password: string) => Promise<AdminRole | false>
   logout: () => void
 }
 
@@ -586,12 +588,12 @@ export const useAdminAuthStore = create<AdminAuthState>()(
     (set) => ({
       isLoggedIn: false,
       role: null,
-      login: async (password: string) => {
-        if (ADMIN_PORTAL_PASSWORD && password === ADMIN_PORTAL_PASSWORD) {
+      login: async (portalId: string, password: string) => {
+        if (ADMIN_PORTAL_ID && ADMIN_PORTAL_PASSWORD && portalId === ADMIN_PORTAL_ID && password === ADMIN_PORTAL_PASSWORD) {
           set({ isLoggedIn: true, role: 'admin' })
           return 'admin'
         }
-        if (STAFF_PORTAL_PASSWORD && password === STAFF_PORTAL_PASSWORD) {
+        if (STAFF_PORTAL_ID && STAFF_PORTAL_PASSWORD && portalId === STAFF_PORTAL_ID && password === STAFF_PORTAL_PASSWORD) {
           set({ isLoggedIn: true, role: 'staff' })
           return 'staff'
         }

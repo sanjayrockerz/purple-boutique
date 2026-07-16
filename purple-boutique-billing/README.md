@@ -16,7 +16,9 @@ The app keeps the established dashboard, POS billing, catalog, category, coupon,
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 - `VITE_WHATSAPP_NUMBER=601133127107`
+- `VITE_ADMIN_ID`
 - `VITE_ADMIN_PASSWORD`
+- `VITE_STAFF_ID` (optional; defaults to `VITE_ADMIN_ID`)
 - `VITE_STAFF_PASSWORD`
 
 The current SVG in `public/purple-boutique-logo.svg` is a temporary placeholder. Replace it with the final logo at the same path when supplied.

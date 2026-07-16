@@ -12,6 +12,7 @@ export default function AdminLogin() {
   const l = (en: string, ta: string) => lang === 'ta' ? ta : en
   const login = useAdminAuthStore((state) => state.login)
 
+  const [portalId, setPortalId] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
@@ -23,7 +24,7 @@ export default function AdminLogin() {
     e.preventDefault()
     setError('')
     setLoading(true)
-    const role = await login(password)
+    const role = await login(portalId.trim(), password)
     setLoading(false)
     if (role === 'admin') {
       const destination = from === '/pos' ? '/dashboard' : from
@@ -31,7 +32,7 @@ export default function AdminLogin() {
     } else if (role === 'staff') {
       navigate('/pos', { replace: true })
     } else {
-      setError(l('Invalid Password', 'தவறான கடவுச்சொல்'))
+      setError(l('Invalid portal ID or password', 'தவறான பயனர் ID அல்லது கடவுச்சொல்'))
     }
   }
 
@@ -72,9 +73,26 @@ export default function AdminLogin() {
 
         {/* Login Form */}
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
-          <p className="text-[13px] font-bold text-textMain">{l('Enter Portal Password', 'கடவுச்சொல்லை உள்ளிடவும்')}</p>
+          <p className="text-[13px] font-bold text-textMain">{l('Enter your portal credentials', 'உங்கள் பயனர் விவரங்களை உள்ளிடவும்')}</p>
 
-          {/* Password only */}
+          <div>
+            <label className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-textMuted">
+              <ShieldCheck size={14} />
+              Portal ID
+              <span className="font-black text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              autoComplete="username"
+              placeholder="Enter portal ID"
+              className="w-full rounded-2xl border-2 border-[#A7F3D0] bg-[#FBFAF6] px-4 py-3.5 text-sm font-semibold outline-none transition-colors placeholder:text-[#AAA69C] focus:border-[#047857] focus:bg-white"
+              value={portalId}
+              onChange={(e) => { setPortalId(e.target.value); setError('') }}
+              disabled={loading}
+              required
+            />
+          </div>
+
           <div>
             <label className="flex items-center gap-1.5 text-[11px] font-bold text-textMuted uppercase tracking-wide mb-1.5">
               <Lock size={14} />
@@ -90,6 +108,7 @@ export default function AdminLogin() {
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setError('') }}
                 disabled={loading}
+                required
               />
               <button
                 type="button"
@@ -121,7 +140,7 @@ export default function AdminLogin() {
           </button>
 
           <p className="text-center text-[11px] leading-relaxed text-[#9A978E]">
-            {l('Enter the portal password to access the admin dashboard.', 'நிர்வாக டாஷ்போர்ட்டில் அணுக கடவுச்சொல்லை உள்ளிடவும்.')}
+            {l('Enter your portal ID and password to access the admin dashboard.', 'நிர்வாக டாஷ்போர்டை அணுக பயனர் ID மற்றும் கடவுச்சொல்லை உள்ளிடவும்.')}
           </p>
         </form>
       </div>

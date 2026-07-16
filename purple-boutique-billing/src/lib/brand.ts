@@ -1,0 +1,19 @@
+export const BRAND_EN = 'Purple Boutique'
+export const BRAND_TA = 'Purple Boutique'
+export const BRAND_SUBTITLE = 'Admin Billing'
+export const BRAND_LOGO = '/purple-boutique-logo.svg'
+
+export const BRAND_PRIMARY_PHONE_DISPLAY = '+60 11-3312 7107'
+export const BRAND_PRIMARY_PHONE_E164 = '601133127107'
+export const BRAND_SECONDARY_PHONE_DISPLAY = BRAND_PRIMARY_PHONE_DISPLAY
+export const BRAND_SECONDARY_PHONE_E164 = BRAND_PRIMARY_PHONE_E164
+export const BRAND_THIRD_PHONE_DISPLAY = BRAND_PRIMARY_PHONE_DISPLAY
+export const BRAND_THIRD_PHONE_E164 = BRAND_PRIMARY_PHONE_E164
+export const BRAND_PHONE_DISPLAY = BRAND_PRIMARY_PHONE_DISPLAY
+export const BRAND_PHONE_E164 = BRAND_PRIMARY_PHONE_E164
+export const BRAND_WHATSAPP = BRAND_THIRD_PHONE_DISPLAY
+export const WHATSAPP_NUM = BRAND_THIRD_PHONE_E164
+export const BRAND_WHATSAPP_LINK = `https://wa.me/${BRAND_THIRD_PHONE_E164}`
+export const BRAND_EMAIL = 'mypurpleboutique05@gmail.com'
+export const BRAND_ADDRESS = 'FR-02-05A TAMARIND SUITE, Persiaran Multimedia, CYBER 10, 63000 Cyberjaya, Selangor'
+export const BRAND_LOCATION_LINK = '#'

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 120" role="img" aria-labelledby="title desc">
+  <title id="title">Purple Boutique</title>
+  <desc id="desc">Emerald green Purple Boutique monogram</desc>
+  <rect width="320" height="120" rx="22" fill="#ffffff"/>
+  <rect x="8" y="8" width="104" height="104" rx="20" fill="#047857"/>
+  <path d="M36 84V35h30c22 0 34 9 34 25 0 17-12 26-34 26H51v-15h14c12 0 18-4 18-11 0-7-6-10-18-10H53v34H36z" fill="#ffffff"/>
+  <text x="132" y="55" fill="#111111" font-family="Georgia, serif" font-size="28" font-weight="700">Purple</text>
+  <text x="132" y="88" fill="#047857" font-family="Georgia, serif" font-size="28" font-weight="700">Boutique</text>
+</svg>

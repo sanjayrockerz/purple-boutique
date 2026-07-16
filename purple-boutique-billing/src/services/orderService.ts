@@ -46,7 +46,7 @@ export const createOrderWithStock = async (input: CreateOrderInput): Promise<Cre
   const manualDiscountValue = Number(input.manualDiscountValue || 0)
   const couponCode     = input.couponCode?.trim() || null
   const couponPercentage = Number(input.couponPercentage || 0)
-  const _effectiveDiscount = discountAmount + manualDiscountAmount // kept for reference
+  const effectiveDiscount = discountAmount + manualDiscountAmount
 
   if (!isSupabaseConfigured) {
     throw new Error('Supabase is required to create orders')
@@ -61,7 +61,7 @@ export const createOrderWithStock = async (input: CreateOrderInput): Promise<Cre
   const paymentMethod   = input.paymentMethod || 'cash'
   const splitDetails    = input.splitDetails || {}
 
-  const newRpcResult = await supabase.rpc('create_order_with_stock', {
+  const rpcPayload = {
     p_customer_name:          customerName,
     p_phone:                  phone,
     p_address:                address,
@@ -81,9 +81,60 @@ export const createOrderWithStock = async (input: CreateOrderInput): Promise<Cre
     p_gst_enabled:            gstEnabled,
     p_payment_method:         paymentMethod,
     p_split_details:          splitDetails,
-  })
-  data  = newRpcResult.data
+  }
+
+  const newRpcResult = await supabase.rpc('create_order_with_stock', rpcPayload)
+  data = newRpcResult.data
   error = newRpcResult.error
+
+  // Legacy Purple Boutique databases expose the original 15-argument RPC.
+  // Retry through its no-stock variant until migration 0003 is installed.
+  if (newRpcResult.error?.code === 'PGRST202') {
+    const legacyResult = await supabase.rpc('create_order_without_stock', {
+      p_address:                address,
+      p_coupon_code:            couponCode,
+      p_coupon_percentage:      couponPercentage,
+      p_customer_name:          customerName,
+      p_delivery_charge:        deliveryCharge,
+      p_discount_amount:        discountAmount,
+      p_items:                  input.items,
+      p_manual_discount_amount: manualDiscountAmount,
+      p_manual_discount_type:   manualDiscountType,
+      p_manual_discount_value:  manualDiscountValue,
+      p_order_mode:             orderMode,
+      p_order_type:             orderType,
+      p_phone:                  phone,
+      p_shipping:               shipping,
+      p_status:                 status,
+    })
+    data = legacyResult.data
+    error = legacyResult.error
+
+    const legacyRow = Array.isArray(data) ? data[0] : data
+    if (!error && legacyRow && typeof legacyRow === 'object') {
+      const legacyOrderId = String((legacyRow as Record<string, unknown>).order_id ?? '')
+      if (legacyOrderId) {
+        const legacySubtotal = input.items.reduce((sum, item) => sum + Number(item.line_total || 0), 0)
+        const legacyTotal = Math.max(
+          0,
+          legacySubtotal + shipping + deliveryCharge + totalGst - effectiveDiscount,
+        )
+        await supabase
+          .from('orders')
+          .update({
+            subtotal: legacySubtotal,
+            shipping,
+            delivery_charge: deliveryCharge,
+            total: legacyTotal,
+            payment_method: paymentMethod,
+            payment_mode: paymentMethod,
+            total_gst: totalGst,
+            gst_amount: totalGst,
+          })
+          .eq('id', legacyOrderId)
+      }
+    }
+  }
 
 
 

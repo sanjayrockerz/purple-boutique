@@ -139,6 +139,16 @@ function AppShell() {
             }
           />
           <Route
+            path="/advance-orders"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <Dashboard />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/pos"
             element={
               <ProtectedRoute>

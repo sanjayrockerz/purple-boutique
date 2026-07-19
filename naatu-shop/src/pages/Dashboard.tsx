@@ -19,6 +19,7 @@ import { toWhatsAppUrl } from '../lib/phone'
 import { createVariant, updateVariant, deleteVariant, setDefaultVariant, type ProductVariant } from '../services/variantService'
 import { useVariantStore } from '../store/store'
 import Pos from './Pos'
+import AdvanceOrders from './AdvanceOrders'
 import {
   ResponsiveContainer,
   LineChart,
@@ -41,7 +42,7 @@ type DashboardOrder = {
   coupon_code: string; discount_amount: number; manual_discount_amount: number; delivery_charge: number
   total_gst: number; payment_mode: string; invoice_pdf_url: string
 }
-type DashboardOrderItem = { order_id: string; product_name: string; quantity: number; line_total: number; is_manual?: boolean | null }
+type DashboardOrderItem = { order_id: string; product_name: string; category?: string; quantity: number; line_total: number; is_manual?: boolean | null }
 type DashboardCoupon = {
   id: number
   code: string
@@ -52,7 +53,7 @@ type DashboardCoupon = {
   usage_count: number
   min_order_value: number
 }
-type TabKey = 'overview' | 'whatsapp' | 'pos_analytics' | 'billing' | 'products' | 'categories' | 'coupons' | 'users' | 'history'
+type TabKey = 'overview' | 'whatsapp' | 'pos_analytics' | 'billing' | 'advance_orders' | 'products' | 'categories' | 'coupons' | 'users' | 'history'
 type PosAnalyticsTab = 'revenue' | 'today' | 'products' | 'categories' | 'coupons'
 type ProfileUser = { id: string; email: string; name: string; mobile: string; role: string; created_at: string }
 
@@ -119,6 +120,7 @@ export default function Dashboard() {
   const [tab, setTab] = useState<TabKey>(() => {
     if (location.pathname === '/whatsapp-center') return 'whatsapp'
     if (location.pathname === '/pos-analytics') return 'pos_analytics'
+    if (location.pathname === '/advance-orders') return 'advance_orders'
     return 'billing'
   })
   const [posAnalyticsTab, setPosAnalyticsTab] = useState<PosAnalyticsTab>('revenue')
@@ -379,6 +381,7 @@ export default function Dashboard() {
       : completedOrders.flatMap(order => parseOrderItems(order.items).map(row => ({
           order_id: order.id,
           product_name: String((row as Record<string,unknown>).product_name || (row as Record<string,unknown>).name || 'Product'),
+          category: String((row as Record<string,unknown>).category || ''),
           quantity: toNumber((row as Record<string,unknown>).quantity ?? (row as Record<string,unknown>).qty, 0),
           line_total: toNumber((row as Record<string,unknown>).line_total ?? (row as Record<string,unknown>).lineTotal, 0),
           is_manual: (row as Record<string,unknown>).is_manual === true || (row as Record<string,unknown>).source === 'manual',
@@ -392,7 +395,7 @@ export default function Dashboard() {
     let totalProductsSold = 0
     let totalManualRevenue = 0
 
-    completedItems.forEach(({ product_name, quantity, line_total, order_id, is_manual }) => {
+    completedItems.forEach(({ product_name, category, quantity, line_total, order_id, is_manual }) => {
       const qty = toNumber(quantity, 0)
       const rev = toNumber(line_total, 0)
       totalProductsSold += qty
@@ -409,7 +412,7 @@ export default function Dashboard() {
       if (!productOrders.has(rawKey)) productOrders.set(rawKey, new Set())
       productOrders.get(rawKey)!.add(order_id)
 
-      const catName = prodCatLookup.get(mainName.toLowerCase()) || 'Uncategorized'
+      const catName = category || prodCatLookup.get(mainName.toLowerCase()) || 'Uncategorized'
       const cc = categoryMap.get(catName) || { name: catName, qty: 0, revenue: 0 }
       cc.qty += qty; cc.revenue += rev; categoryMap.set(catName, cc)
 
@@ -628,7 +631,7 @@ export default function Dashboard() {
         let oi: unknown[] | null = null
         let orderItemsError: unknown = null
         const orderItemsResult = await supabase
-          .from('order_items').select('order_id,product_name,quantity,line_total,is_manual')
+          .from('order_items').select('order_id,product_name,category,quantity,line_total,is_manual')
           .in('order_id', orderIds)
         oi = orderItemsResult.data
         orderItemsError = orderItemsResult.error
@@ -643,6 +646,7 @@ export default function Dashboard() {
         setOrderItems((oi || []).map(r => ({
           order_id: String((r as Record<string,unknown>).order_id || ''),
           product_name: String((r as Record<string,unknown>).product_name || 'Product'),
+          category: String((r as Record<string,unknown>).category || ''),
           quantity: toNumber((r as Record<string,unknown>).quantity, 0),
           line_total: toNumber((r as Record<string,unknown>).line_total, 0),
           is_manual: Boolean((r as Record<string,unknown>).is_manual),
@@ -1244,6 +1248,7 @@ export default function Dashboard() {
 
   const navItems: Array<{ id: TabKey; icon: React.ReactNode; label: string; protected?: boolean }> = [
     { id: 'billing',       icon: <ShoppingCart size={20} />,     label: 'Billing Panel' },
+    { id: 'advance_orders',icon: <FileText size={20} />,         label: 'Advance Orders' },
     { id: 'categories',    icon: <Package size={20} />,           label: 'Categories' },
     { id: 'history',       icon: <List size={20} />,             label: 'Order History', protected: true },
     { id: 'pos_analytics', icon: <BarChart2 size={20} />,        label: 'Analytics Dashboard', protected: true },
@@ -2593,6 +2598,8 @@ ve overflow-hidden rounded-2xl p-5 shadow-lg border border-white/20 bg-gradient-
             <Pos isEmbedded />
           </div>
         )}
+
+        {tab === 'advance_orders' && <AdvanceOrders />}
 
         {/* ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ ORDER MANAGEMENT ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ */}
         {tab === 'history' && (

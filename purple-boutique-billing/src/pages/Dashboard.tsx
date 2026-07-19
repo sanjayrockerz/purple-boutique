@@ -3,7 +3,7 @@ import {
   BarChart2, Trash2, Edit2, List, ShoppingCart, LayoutDashboard,
   Box, AlertCircle, ArrowUp, ArrowDown, Power, Download, TrendingUp,
   Package, BadgeDollarSign, Search, RefreshCw, ShieldCheck, ShieldOff, Trophy,
-  MessageCircle, ChevronDown, Eye, Printer, MoreVertical, X,
+  MessageCircle, ChevronDown, Eye, FileText, Printer, MoreVertical, X,
 } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
@@ -20,6 +20,8 @@ import { invoicePdfFile } from '../lib/invoicePdf'
 import { createVariant, updateVariant, deleteVariant, setDefaultVariant, type ProductVariant } from '../services/variantService'
 import { useVariantStore } from '../store/store'
 import Pos from './Pos'
+import AdvanceOrders from './AdvanceOrders'
+import type { AdvanceOrder } from '../services/advanceOrderService'
 import {
   ResponsiveContainer,
   XAxis,
@@ -38,7 +40,7 @@ type DashboardOrder = {
   coupon_code: string; discount_amount: number; manual_discount_amount: number; delivery_charge: number
   total_gst: number; payment_mode: string; payment_method?: string; invoice_pdf_url: string
 }
-type DashboardOrderItem = { order_id: string; product_name: string; quantity: number; line_total: number; is_manual?: boolean | null }
+type DashboardOrderItem = { order_id: string; product_name: string; category?: string; quantity: number; line_total: number; is_manual?: boolean | null }
 type DashboardCoupon = {
   id: number
   code: string
@@ -49,7 +51,7 @@ type DashboardCoupon = {
   usage_count: number
   min_order_value: number
 }
-type TabKey = 'overview' | 'whatsapp' | 'pos_analytics' | 'billing' | 'products' | 'categories' | 'coupons' | 'users' | 'history'
+type TabKey = 'overview' | 'whatsapp' | 'pos_analytics' | 'billing' | 'advance_orders' | 'products' | 'categories' | 'coupons' | 'users' | 'history'
 type PosAnalyticsTab = 'revenue' | 'today' | 'products' | 'categories' | 'coupons'
 type ProfileUser = { id: string; email: string; name: string; mobile: string; role: string; created_at: string }
 
@@ -116,6 +118,7 @@ export default function Dashboard() {
   const [tab, setTab] = useState<TabKey>(() => {
     if (location.pathname === '/whatsapp-center') return 'whatsapp'
     if (location.pathname === '/pos-analytics') return 'pos_analytics'
+    if (location.pathname === '/advance-orders') return 'advance_orders'
     return 'billing'
   })
   const [posAnalyticsTab, setPosAnalyticsTab] = useState<PosAnalyticsTab>('revenue')
@@ -218,6 +221,46 @@ export default function Dashboard() {
     payment_mode: String(row.payment_mode || row.payment_method || ''),
     invoice_pdf_url: String(row.invoice_pdf_url || ''),
   })
+
+  const handleAdvanceOrderCompleted = useCallback((advance: AdvanceOrder) => {
+    if (!advance.completed_order_id || !advance.invoice_number) return
+    const createdAt = advance.completed_at || new Date().toISOString()
+    const item = {
+      name: advance.product_name,
+      category: advance.category,
+      quantity: 1,
+      base_price: advance.total_amount,
+      line_total: advance.total_amount,
+      unit: 'piece',
+      unit_type: 'unit',
+      source: 'advance_order',
+    }
+    const completed: DashboardOrder = {
+      id: advance.completed_order_id,
+      invoice_no: advance.invoice_number,
+      customer_name: advance.customer_name,
+      phone: advance.phone,
+      address: advance.address,
+      created_at: createdAt,
+      total: advance.total_amount,
+      status: 'completed',
+      order_mode: 'offline',
+      order_type: 'advance_order',
+      user_id: user?.id || null,
+      items: [item],
+      coupon_code: '',
+      discount_amount: 0,
+      manual_discount_amount: 0,
+      delivery_charge: 0,
+      total_gst: 0,
+      payment_mode: advance.final_payment_method || '',
+      payment_method: advance.final_payment_method || '',
+      invoice_pdf_url: '',
+    }
+    setOrders(current => [completed, ...current.filter(order => order.id !== completed.id)])
+    setSearchResults(current => [completed, ...current.filter(order => order.id !== completed.id)].slice(0, 100))
+    setOrderItems(current => [{ order_id: completed.id, product_name: advance.product_name, category: advance.category, quantity: 1, line_total: advance.total_amount, is_manual: false }, ...current.filter(row => row.order_id !== completed.id)])
+  }, [user?.id])
 
   // Analytics (date-aware)
   const analytics = useMemo(() => {
@@ -338,6 +381,7 @@ export default function Dashboard() {
       : completedOrders.flatMap(order => parseOrderItems(order.items).map(row => ({
           order_id: order.id,
           product_name: String((row as Record<string,unknown>).product_name || (row as Record<string,unknown>).name || 'Product'),
+          category: String((row as Record<string,unknown>).category || ''),
           quantity: toNumber((row as Record<string,unknown>).quantity ?? (row as Record<string,unknown>).qty, 0),
           line_total: toNumber((row as Record<string,unknown>).line_total ?? (row as Record<string,unknown>).lineTotal, 0),
           is_manual: (row as Record<string,unknown>).is_manual === true || (row as Record<string,unknown>).source === 'manual',
@@ -351,7 +395,7 @@ export default function Dashboard() {
     let totalProductsSold = 0
     let totalManualRevenue = 0
 
-    completedItems.forEach(({ product_name, quantity, line_total, order_id, is_manual }) => {
+    completedItems.forEach(({ product_name, category, quantity, line_total, order_id, is_manual }) => {
       const qty = toNumber(quantity, 0)
       const rev = toNumber(line_total, 0)
       totalProductsSold += qty
@@ -367,7 +411,7 @@ export default function Dashboard() {
       if (!productOrders.has(rawKey)) productOrders.set(rawKey, new Set())
       productOrders.get(rawKey)!.add(order_id)
 
-      const catName = prodCatLookup.get(mainName.toLowerCase()) || 'Uncategorized'
+      const catName = category || prodCatLookup.get(mainName.toLowerCase()) || 'Uncategorized'
       const cc = categoryMap.get(catName) || { name: catName, qty: 0, revenue: 0 }
       cc.qty += qty; cc.revenue += rev; categoryMap.set(catName, cc)
 
@@ -571,12 +615,16 @@ export default function Dashboard() {
     if (!isSupabaseConfigured) return
     setLoading(true)
     try {
-      const [cRes, oRes] = await Promise.all([
+      const productsPromise = fetchProducts(true)
+      const [cRes, oRes, couponRes] = await Promise.all([
         supabase.from('categories').select('id, name_en, name_ta, is_active, sort_order').order('sort_order'),
         supabase.from('orders')
           .select('id, invoice_no, customer_name, phone, address, created_at, total, status, order_mode, order_type, user_id, items, coupon_code, discount_amount, manual_discount_amount, delivery_charge, total_gst, gst_amount, payment_mode, payment_method, invoice_pdf_url')
           .order('created_at', { ascending: false })
           .limit(1000),
+        supabase.from('coupons')
+          .select('id, code, percentage, is_active, expiry_date, usage_limit, usage_count, min_order_value')
+          .order('created_at', { ascending: false }),
       ])
       if (cRes.error) throw cRes.error
       if (oRes.error) throw oRes.error
@@ -584,14 +632,14 @@ export default function Dashboard() {
       setCats((cRes.data || []) as Category[])
       setOrders(mappedOrders)
       setSearchResults(mappedOrders.filter(o => normalizeOrderType(o.order_type) !== 'online_request').slice(0, 100))
-      await fetchProducts(true)
+      setCoupons((couponRes.data || []) as DashboardCoupon[])
 
       const orderIds = mappedOrders.map(o => o.id).filter(Boolean)
       if (orderIds.length > 0) {
         let oi: unknown[] | null = null
         let orderItemsError: unknown = null
         const orderItemsResult = await supabase
-          .from('order_items').select('order_id,product_name,quantity,line_total,is_manual')
+          .from('order_items').select('order_id,product_name,category,quantity,line_total,is_manual')
           .in('order_id', orderIds)
         oi = orderItemsResult.data
         orderItemsError = orderItemsResult.error
@@ -606,21 +654,14 @@ export default function Dashboard() {
         setOrderItems((oi || []).map(r => ({
           order_id: String((r as Record<string,unknown>).order_id || ''),
           product_name: String((r as Record<string,unknown>).product_name || 'Product'),
+          category: String((r as Record<string,unknown>).category || ''),
           quantity: toNumber((r as Record<string,unknown>).quantity, 0),
           line_total: toNumber((r as Record<string,unknown>).line_total, 0),
           is_manual: Boolean((r as Record<string,unknown>).is_manual),
         })))
       }
 
-      try {
-        const { data: couponRows } = await supabase
-          .from('coupons')
-          .select('id, code, percentage, is_active, expiry_date, usage_limit, usage_count, min_order_value')
-          .order('created_at', { ascending: false })
-        setCoupons((couponRows || []) as DashboardCoupon[])
-      } catch {
-        setCoupons([])
-      }
+      await productsPromise
     } catch (err) { console.error('Dashboard load error', err) }
     finally { setLoading(false) }
   }, [fetchProducts])
@@ -1205,6 +1246,7 @@ export default function Dashboard() {
 
   const navItems: Array<{ id: TabKey; icon: React.ReactNode; label: string }> = [
     { id: 'billing',       icon: <ShoppingCart size={20} />,     label: 'Billing Panel' },
+    { id: 'advance_orders',icon: <FileText size={20} />,         label: 'Advance Orders' },
     { id: 'categories',    icon: <Package size={20} />,           label: 'Categories' },
     { id: 'history',       icon: <List size={20} />,             label: 'Order History' },
     { id: 'pos_analytics', icon: <BarChart2 size={20} />,        label: 'Analytics Dashboard' },
@@ -2507,6 +2549,8 @@ export default function Dashboard() {
             <Pos isEmbedded />
           </div>
         )}
+
+        {tab === 'advance_orders' && <AdvanceOrders onOrderCompleted={handleAdvanceOrderCompleted} />}
 
         {/* ── ORDER MANAGEMENT ── */}
         {tab === 'history' && (

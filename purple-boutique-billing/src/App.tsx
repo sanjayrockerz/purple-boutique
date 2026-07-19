@@ -130,6 +130,7 @@ function AppShell() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/whatsapp-center" element={<Dashboard />} />
             <Route path="/pos-analytics" element={<Dashboard />} />
+            <Route path="/advance-orders" element={<Dashboard />} />
           </Route>
           <Route
             path="/pos"

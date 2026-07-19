@@ -15,6 +15,7 @@ type BuildWhatsAppMessageInput = {
   phone?: string
   invoiceNumber: string
   invoiceDate?: string
+  invoiceUrl?: string
   paymentMode?: string
   items: WhatsAppLineItem[]
   subtotal: number
@@ -24,6 +25,9 @@ type BuildWhatsAppMessageInput = {
   gstAmount?: number
   total: number
 }
+
+export const publicInvoiceUrl = (invoiceNumber: string) =>
+  `${window.location.origin}/invoice/${encodeURIComponent(invoiceNumber)}`
 
 export const buildProfessionalWhatsAppMessage = (input: BuildWhatsAppMessageInput) => {
   const date = input.invoiceDate ? new Date(input.invoiceDate) : new Date()
@@ -55,6 +59,7 @@ export const buildProfessionalWhatsAppMessage = (input: BuildWhatsAppMessageInpu
     'We appreciate your purchase. Here is your invoice summary.',
     '',
     '*INVOICE SUMMARY*',
+    input.invoiceUrl ? `Download Invoice PDF: ${input.invoiceUrl}` : '',
     `Invoice No: ${input.invoiceNumber}`,
     `Date: ${dateStr}`,
     `Customer: ${customerName}`,

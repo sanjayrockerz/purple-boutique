@@ -11,6 +11,7 @@ create table if not exists public.advance_orders (
   phone text not null,
   address text not null default '',
   product_name text not null,
+  products jsonb not null default '[]'::jsonb,
   category text not null default '',
   description text not null default '',
   total_amount numeric(12,2) not null check (total_amount > 0),
@@ -29,6 +30,8 @@ create table if not exists public.advance_orders (
   final_payment_method text,
   constraint advance_deposit_less_than_total check (deposit_amount < total_amount)
 );
+
+alter table public.advance_orders add column if not exists products jsonb not null default '[]'::jsonb;
 
 create table if not exists public.advance_order_timeline (
   id bigint generated always as identity primary key,
@@ -58,10 +61,12 @@ create index if not exists advance_orders_delivery_idx on public.advance_orders(
 create index if not exists advance_order_timeline_order_idx on public.advance_order_timeline(advance_order_id, created_at);
 create index if not exists advance_order_payments_order_idx on public.advance_order_payments(advance_order_id, received_at);
 
+drop function if exists public.create_advance_order(text,text,text,text,text,text,numeric,numeric,date,text,text,text);
 create or replace function public.create_advance_order(
   p_customer_name text, p_phone text, p_address text, p_product_name text,
   p_category text, p_description text, p_total_amount numeric, p_deposit_amount numeric,
-  p_expected_delivery_date date, p_remarks text, p_payment_method text, p_created_by_name text
+  p_expected_delivery_date date, p_remarks text, p_payment_method text, p_created_by_name text,
+  p_products jsonb default '[]'::jsonb
 )
 returns public.advance_orders
 language plpgsql security definer set search_path = public
@@ -75,8 +80,8 @@ begin
   if coalesce(p_deposit_amount,0) <= 0 or p_deposit_amount >= p_total_amount then raise exception 'Deposit must be greater than zero and less than the total amount'; end if;
   if lower(coalesce(p_payment_method,'')) not in ('cash','upi','card') then raise exception 'Select a valid deposit payment method'; end if;
   v_deposit_id := 'DEP-' || to_char(v_now at time zone 'Asia/Kolkata','YYYYMMDD') || '-' || lpad(nextval('public.deposit_number_seq')::text,4,'0');
-  insert into public.advance_orders(deposit_id,customer_name,phone,address,product_name,category,description,total_amount,deposit_amount,expected_delivery_date,remarks,created_by,created_by_name,created_at,updated_at)
-  values(v_deposit_id,trim(p_customer_name),trim(p_phone),trim(coalesce(p_address,'')),trim(p_product_name),trim(coalesce(p_category,'')),trim(coalesce(p_description,'')),round(p_total_amount,2),round(p_deposit_amount,2),p_expected_delivery_date,trim(coalesce(p_remarks,'')),auth.uid(),trim(coalesce(p_created_by_name,'')),v_now,v_now)
+  insert into public.advance_orders(deposit_id,customer_name,phone,address,product_name,products,category,description,total_amount,deposit_amount,expected_delivery_date,remarks,created_by,created_by_name,created_at,updated_at)
+  values(v_deposit_id,trim(p_customer_name),trim(p_phone),trim(coalesce(p_address,'')),trim(p_product_name),case when jsonb_typeof(coalesce(p_products,'[]'::jsonb))='array' then coalesce(p_products,'[]'::jsonb) else '[]'::jsonb end,trim(coalesce(p_category,'')),trim(coalesce(p_description,'')),round(p_total_amount,2),round(p_deposit_amount,2),p_expected_delivery_date,trim(coalesce(p_remarks,'')),auth.uid(),trim(coalesce(p_created_by_name,'')),v_now,v_now)
   returning * into v_order;
   insert into public.advance_order_payments(advance_order_id,payment_type,amount,payment_method,remarks,received_by,received_at)
   values(v_order.id,'deposit',v_order.deposit_amount,lower(p_payment_method),coalesce(p_remarks,''),auth.uid(),v_now);
@@ -117,7 +122,7 @@ create or replace function public.complete_advance_order(p_order_id uuid, p_paym
 returns table(order_id uuid, invoice_no text, completed_at timestamptz)
 language plpgsql security definer set search_path = public
 as $$
-declare v_advance public.advance_orders; v_order_id uuid := gen_random_uuid(); v_invoice text; v_now timestamptz := now(); v_items jsonb;
+declare v_advance public.advance_orders; v_order_id uuid := gen_random_uuid(); v_invoice text; v_now timestamptz := now(); v_items jsonb; v_item jsonb;
 begin
   if lower(coalesce(p_payment_method,'')) not in ('cash','upi','card') then raise exception 'Select a valid payment method'; end if;
   select * into v_advance from public.advance_orders where id=p_order_id for update;
@@ -125,11 +130,13 @@ begin
   if v_advance.status='cancelled' then raise exception 'A cancelled order cannot be completed'; end if;
   if v_advance.completed_order_id is not null or v_advance.invoice_number is not null then raise exception 'Invoice already generated for this order'; end if;
   v_invoice := 'PB-' || to_char(v_now at time zone 'Asia/Kolkata','YYYYMMDD') || '-' || lpad(nextval('public.invoice_number_seq')::text,6,'0');
-  v_items := jsonb_build_array(jsonb_build_object('name',v_advance.product_name,'category',v_advance.category,'description',v_advance.description,'quantity',1,'base_price',v_advance.total_amount,'line_total',v_advance.total_amount,'unit','piece','unit_type','unit','source','advance_order'));
+  v_items := case when jsonb_typeof(v_advance.products)='array' and jsonb_array_length(v_advance.products)>0 then v_advance.products else jsonb_build_array(jsonb_build_object('name',v_advance.product_name,'category',v_advance.category,'description',v_advance.description,'quantity',1,'base_price',v_advance.total_amount,'line_total',v_advance.total_amount,'unit','piece','unit_type','unit','source','advance_order')) end;
   insert into public.orders(id,invoice_no,customer_name,phone,address,user_id,items,subtotal,total,status,order_mode,order_type,shipping,delivery_charge,discount_amount,manual_discount_amount,payment_mode,payment_method,created_at,updated_at)
   values(v_order_id,v_invoice,v_advance.customer_name,v_advance.phone,v_advance.address,auth.uid(),v_items,v_advance.total_amount,v_advance.total_amount,'completed','offline','advance_order',0,0,0,0,lower(p_payment_method),lower(p_payment_method),v_now,v_now);
-  insert into public.order_items(order_id,product_name,category,quantity,unit,unit_price,line_total,is_manual,source,note)
-  values(v_order_id,v_advance.product_name,v_advance.category,1,'piece',v_advance.total_amount,v_advance.total_amount,false,'advance_order',v_advance.description);
+  for v_item in select value from jsonb_array_elements(v_items) loop
+    insert into public.order_items(order_id,product_name,category,quantity,unit,unit_price,line_total,is_manual,source,note)
+    values(v_order_id,coalesce(nullif(v_item->>'name',''),'Product'),coalesce(nullif(v_item->>'category',''),v_advance.category),greatest(coalesce(nullif(v_item->>'quantity','')::numeric,1),0),coalesce(nullif(v_item->>'unit',''),'piece'),greatest(coalesce(nullif(v_item->>'base_price','')::numeric,0),0),greatest(coalesce(nullif(v_item->>'line_total','')::numeric,0),0),false,'advance_order',coalesce(nullif(v_item->>'note',''),v_advance.description));
+  end loop;
   insert into public.advance_order_payments(advance_order_id,payment_type,amount,payment_method,remarks,received_by,received_at)
   values(p_order_id,'remaining',v_advance.remaining_balance,lower(p_payment_method),coalesce(p_remarks,''),auth.uid(),v_now);
   update public.advance_orders set status='completed',completed_at=v_now,completed_order_id=v_order_id,invoice_number=v_invoice,final_payment_method=lower(p_payment_method),remarks=case when trim(coalesce(p_remarks,''))='' then remarks else p_remarks end,updated_at=v_now where id=p_order_id;
@@ -150,11 +157,11 @@ create policy "Authenticated users can read advance timeline" on public.advance_
 drop policy if exists "Authenticated users can read advance payments" on public.advance_order_payments;
 create policy "Authenticated users can read advance payments" on public.advance_order_payments for select to authenticated using (true);
 grant select on public.advance_orders,public.advance_order_timeline,public.advance_order_payments to authenticated;
-revoke all on function public.create_advance_order(text,text,text,text,text,text,numeric,numeric,date,text,text,text) from public;
+revoke all on function public.create_advance_order(text,text,text,text,text,text,numeric,numeric,date,text,text,text,jsonb) from public;
 revoke all on function public.update_advance_order_status(uuid,text,text) from public;
 revoke all on function public.add_advance_order_event(uuid,text,text,text) from public;
 revoke all on function public.complete_advance_order(uuid,text,text) from public;
-grant execute on function public.create_advance_order(text,text,text,text,text,text,numeric,numeric,date,text,text,text) to authenticated;
+grant execute on function public.create_advance_order(text,text,text,text,text,text,numeric,numeric,date,text,text,text,jsonb) to authenticated;
 grant execute on function public.update_advance_order_status(uuid,text,text) to authenticated;
 grant execute on function public.add_advance_order_event(uuid,text,text,text) to authenticated;
 grant execute on function public.complete_advance_order(uuid,text,text) to authenticated;

@@ -225,7 +225,7 @@ export default function Dashboard() {
   const handleAdvanceOrderCompleted = useCallback((advance: AdvanceOrder) => {
     if (!advance.completed_order_id || !advance.invoice_number) return
     const createdAt = advance.completed_at || new Date().toISOString()
-    const item = {
+    const fallbackItem = {
       name: advance.product_name,
       category: advance.category,
       quantity: 1,
@@ -235,6 +235,7 @@ export default function Dashboard() {
       unit_type: 'unit',
       source: 'advance_order',
     }
+    const completedItems = advance.products.length ? advance.products : [fallbackItem]
     const completed: DashboardOrder = {
       id: advance.completed_order_id,
       invoice_no: advance.invoice_number,
@@ -247,7 +248,7 @@ export default function Dashboard() {
       order_mode: 'offline',
       order_type: 'advance_order',
       user_id: user?.id || null,
-      items: [item],
+      items: completedItems,
       coupon_code: '',
       discount_amount: 0,
       manual_discount_amount: 0,
@@ -259,7 +260,7 @@ export default function Dashboard() {
     }
     setOrders(current => [completed, ...current.filter(order => order.id !== completed.id)])
     setSearchResults(current => [completed, ...current.filter(order => order.id !== completed.id)].slice(0, 100))
-    setOrderItems(current => [{ order_id: completed.id, product_name: advance.product_name, category: advance.category, quantity: 1, line_total: advance.total_amount, is_manual: false }, ...current.filter(row => row.order_id !== completed.id)])
+    setOrderItems(current => [...completedItems.map(item => ({ order_id: completed.id, product_name: String(item.name || 'Product'), category: String(item.category || advance.category || ''), quantity: Number(item.quantity || 1), line_total: Number(item.line_total || 0), is_manual: false })), ...current.filter(row => row.order_id !== completed.id)])
   }, [user?.id])
 
   // Analytics (date-aware)

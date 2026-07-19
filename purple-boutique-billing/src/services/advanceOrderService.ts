@@ -10,6 +10,7 @@ export type AdvanceOrder = {
   phone: string
   address: string
   product_name: string
+  products: Array<Record<string, unknown>>
   category: string
   description: string
   total_amount: number
@@ -34,6 +35,7 @@ const normalizeOrder = (row: Record<string, unknown>): AdvanceOrder => ({
   ...row,
   id: String(row.id || ''), deposit_id: String(row.deposit_id || ''), customer_name: String(row.customer_name || ''),
   phone: String(row.phone || ''), address: String(row.address || ''), product_name: String(row.product_name || ''),
+  products: Array.isArray(row.products) ? row.products as Array<Record<string, unknown>> : [],
   category: String(row.category || ''), description: String(row.description || ''), total_amount: Number(row.total_amount || 0),
   deposit_amount: Number(row.deposit_amount || 0), remaining_balance: Number(row.remaining_balance || 0),
   expected_delivery_date: String(row.expected_delivery_date || ''), status: String(row.status || 'pending_deposit') as AdvanceStatus,
@@ -67,13 +69,13 @@ export async function getAdvanceOrderHistory(orderId: string) {
 export async function createAdvanceOrder(input: {
   customerName: string; phone: string; address: string; productName: string; category: string; description: string
   totalAmount: number; depositAmount: number; expectedDeliveryDate: string; remarks: string
-  paymentMethod: AdvancePaymentMethod; createdByName: string
+  paymentMethod: AdvancePaymentMethod; createdByName: string; products?: Array<Record<string, unknown>>
 }) {
   const { data, error } = await supabase.rpc('create_advance_order', {
     p_customer_name: input.customerName, p_phone: input.phone, p_address: input.address, p_product_name: input.productName,
     p_category: input.category, p_description: input.description, p_total_amount: input.totalAmount,
     p_deposit_amount: input.depositAmount, p_expected_delivery_date: input.expectedDeliveryDate, p_remarks: input.remarks,
-    p_payment_method: input.paymentMethod, p_created_by_name: input.createdByName,
+    p_payment_method: input.paymentMethod, p_created_by_name: input.createdByName, p_products: input.products || [],
   })
   fail(error, 'Unable to create advance order')
   return normalizeOrder(rpcRow(data || {}))

@@ -508,7 +508,7 @@ export default function Pos(props: PosProps = {}) {
       gstAmount: inv.gstAmount,
       total: inv.total,
     })
-    window.open(`${toWhatsAppUrl(inv.phone || customer.phone || '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer')
+    window.open(toWhatsAppUrl(inv.phone || customer.phone || '', message), '_blank', 'noopener,noreferrer')
     return
     const pdfBlob = generatePDFInvoice({
       invoiceNo: inv.invoiceNo,
@@ -564,8 +564,7 @@ export default function Pos(props: PosProps = {}) {
     const a = document.createElement('a')
     a.href = url; a.download = `Invoice-${inv.invoiceNo}.pdf`; a.click()
     URL.revokeObjectURL(url)
-    const waLink = toWhatsAppUrl(inv.phone || customer.phone || '')
-    const text = encodeURIComponent(`${buildProfessionalWhatsAppMessage({
+    const rawMsg = `${buildProfessionalWhatsAppMessage({
       customerName: inv.customerName,
       phone: inv.phone,
       invoiceNumber: inv.invoiceNo,
@@ -584,8 +583,8 @@ export default function Pos(props: PosProps = {}) {
       shipping: inv.shipping,
       gstAmount: inv.gstAmount,
       total: inv.total,
-    })}${inv.invoicePdfUrl ? `\n\nInvoice PDF: ${inv.invoicePdfUrl}` : ''}`)
-    window.open(`${waLink}?text=${text}`, '_blank')
+    })}${inv.invoicePdfUrl ? `\n\nInvoice PDF: ${inv.invoicePdfUrl}` : ''}`
+    window.open(toWhatsAppUrl(inv.phone || customer.phone || '', rawMsg), '_blank', 'noopener,noreferrer')
   }
 
   // ══ INVOICE SCREEN ════════════════════════════════════════════════════

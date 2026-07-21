@@ -752,7 +752,7 @@ export default function Dashboard() {
       return
     }
     const { message } = preview
-    window.open(`${toWhatsAppUrl(order.phone)}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer')
+    window.open(toWhatsAppUrl(order.phone, message), '_blank', 'noopener,noreferrer')
     return
     const { items, subtotal } = preview!
     const file = invoicePdfFile({
@@ -778,7 +778,7 @@ export default function Dashboard() {
     }
 
     const whatsappMessage = downloadLink
-      ? `${message}\n\nÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¾ Download Invoice: ${downloadLink}`
+      ? `${message}\n\n📄 Download Invoice: ${downloadLink}`
       : `${message}\n\nThe PDF was downloaded. Please attach it in this chat before sending.`
 
     if (navigator.share && navigator.canShare?.({ files: [file] })) {
@@ -794,7 +794,7 @@ export default function Dashboard() {
     link.download = file.name
     link.click()
     setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000)
-    window.open(`${toWhatsAppUrl(order.phone)}?text=${encodeURIComponent(whatsappMessage)}`, '_blank', 'noopener,noreferrer')
+    window.open(toWhatsAppUrl(order.phone, whatsappMessage), '_blank', 'noopener,noreferrer')
   }
 
   const openOrderInvoice = async (order: DashboardOrder, mode: 'view' | 'download' | 'print') => {

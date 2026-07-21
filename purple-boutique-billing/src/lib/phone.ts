@@ -59,9 +59,17 @@ export function getSubscriberDigits(input: string): string | null {
  * Falls back to the store's WhatsApp link if the number is invalid.
  */
 export function toWhatsAppUrl(phone: string, text?: string): string {
-  const textParam = text ? `?text=${encodeURIComponent(text)}` : ''
   const normalized = normalizeIndianPhone(phone)
-  if (normalized) return `https://wa.me/${normalized}${textParam}`
-  return `${BRAND_WHATSAPP_LINK}${textParam}`
+  const queryParams: string[] = []
+  
+  if (normalized) {
+    queryParams.push(`phone=${normalized}`)
+  }
+  if (text) {
+    queryParams.push(`text=${encodeURIComponent(text)}`)
+  }
+
+  return `https://api.whatsapp.com/send${queryParams.length > 0 ? `?${queryParams.join('&')}` : ''}`
 }
+
 

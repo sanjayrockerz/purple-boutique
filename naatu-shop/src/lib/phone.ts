@@ -32,21 +32,24 @@ export function getSubscriberDigits(input: string): string | null {
 }
 
 export function toWhatsAppUrl(phone: string, text?: string): string {
-  const textParam = text ? `?text=${encodeURIComponent(text)}` : ''
-  if (!phone) return `${BRAND_WHATSAPP_LINK}${textParam}`
-
-  const digits = phone.replace(/\D/g, '')
+  const digits = (phone || '').replace(/\D/g, '')
   let normalized = digits
 
   if (digits.length === 10) {
-    normalized = '91' + digits
+    normalized = '60' + digits
   } else if (digits.length === 11 && digits.startsWith('0')) {
-    normalized = '91' + digits.slice(1)
+    normalized = '60' + digits.slice(1)
   }
 
+  const queryParams: string[] = []
   if (normalized) {
-    return `https://wa.me/${normalized}${textParam}`
+    queryParams.push(`phone=${normalized}`)
   }
-  return `${BRAND_WHATSAPP_LINK}${textParam}`
+  if (text) {
+    queryParams.push(`text=${encodeURIComponent(text)}`)
+  }
+
+  return `https://api.whatsapp.com/send${queryParams.length > 0 ? `?${queryParams.join('&')}` : ''}`
 }
+
 

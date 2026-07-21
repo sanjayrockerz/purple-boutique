@@ -550,7 +550,6 @@ export default function Pos(props: PosProps = {}) {
     ? Number(cashReceived) - total : null
 
   const sendPosWhatsApp = (inv: InvoiceSnap) => {
-    const waLink = toWhatsAppUrl(inv.phone || customer.phone || '')
     const invoiceUrl = inv.invoicePdfUrl || `${window.location.origin}/invoice/${inv.invoiceNo}`
     const message = buildProfessionalWhatsAppMessage({
       customerName: inv.customerName,
@@ -572,7 +571,7 @@ export default function Pos(props: PosProps = {}) {
       gstAmount: inv.gstAmount,
       total: inv.total,
     }) + `\n\n📄 Invoice PDF: ${invoiceUrl}`
-    window.open(`${waLink}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer')
+    window.open(toWhatsAppUrl(inv.phone || customer.phone || '', message), '_blank', 'noopener,noreferrer')
   }
 
   const persistInvoicePdf = async (inv: InvoiceSnap) => {

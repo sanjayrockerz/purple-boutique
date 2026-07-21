@@ -174,7 +174,7 @@ const invoiceItems = (Array.isArray(invoice.items) ? invoice.items : [])
     link.download = file.name
     link.click()
     setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000)
-    window.open(`${toWhatsAppUrl(invoice.phone)}?text=${encodeURIComponent(whatsappMessage)}`, '_blank', 'noopener,noreferrer')
+    window.open(toWhatsAppUrl(invoice.phone, whatsappMessage), '_blank', 'noopener,noreferrer')
   }
 
   const printReceipt = () => {

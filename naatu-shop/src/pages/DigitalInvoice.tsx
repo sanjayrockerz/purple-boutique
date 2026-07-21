@@ -121,7 +121,7 @@ const invoiceItems = (Array.isArray(invoice.items) ? invoice.items : [])
       paymentMode: invoice.payment_mode || invoice.payment_method,
     })
 
-    window.open(`${toWhatsAppUrl(invoice.phone)}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer')
+    window.open(toWhatsAppUrl(invoice.phone, message), '_blank', 'noopener,noreferrer')
   }
 
   const printReceipt = () => {

@@ -1,7 +1,8 @@
 export const BRAND_EN = 'Purple Boutique'
 export const BRAND_TA = 'Purple Boutique'
 export const BRAND_SUBTITLE = 'Admin Billing'
-export const BRAND_LOGO = '/purple-boutique-logo.svg'
+export const BRAND_LOGO = '/purple-boutique-logo.jpeg'
+
 
 export const BRAND_PRIMARY_PHONE_DISPLAY = '+60 11-3312 7107'
 export const BRAND_PRIMARY_PHONE_E164 = '601133127107'

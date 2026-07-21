@@ -1,20 +1,23 @@
-import { BRAND_EN, BRAND_WHATSAPP } from './brand'
+import { BRAND_ADDRESS, BRAND_EN, BRAND_LOGO, BRAND_WHATSAPP } from './brand'
 import { formatCurrency } from './retail'
+
+export interface ThermalReceiptItem {
+  name: string
+  nameTa?: string
+  qty: number
+  unit?: string
+  price: number
+  line_total?: number
+}
 
 export interface ThermalReceiptData {
   invoiceNo: string
   date: string
   customerName?: string
   phone?: string
-  items: Array<{
-    name: string
-    qty: number
-    unit?: string
-    price: number
-    line_total?: number
-  }>
+  items: ThermalReceiptItem[]
   subtotal: number
-  shipping: number
+  shipping?: number
   couponDiscount?: number
   manualDiscount?: number
   totalGst?: number
@@ -25,23 +28,13 @@ export interface ThermalReceiptData {
 }
 
 export function printThermalReceipt(data: ThermalReceiptData) {
-  // Create an iframe to hold the print document
-  const iframe = document.createElement('iframe')
-  iframe.style.position = 'fixed'
-  iframe.style.right = '0'
-  iframe.style.bottom = '0'
-  iframe.style.width = '0'
-  iframe.style.height = '0'
-  iframe.style.border = '0'
-  document.body.appendChild(iframe)
+  const printWindow = window.open('', '_blank', 'width=400,height=600')
+  if (!printWindow) return
 
-  const doc = iframe.contentWindow?.document
-  if (!doc) return
-
-  const dateStr = (() => {
-    try { return new Date(data.date).toLocaleString('en-MY', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }
-    catch { return new Date().toLocaleString('en-MY') }
-  })()
+  const dateStr = data.date ? new Date(data.date).toLocaleString('en-IN', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: true
+  }) : ''
 
   const html = `
     <!DOCTYPE html>
@@ -49,24 +42,12 @@ export function printThermalReceipt(data: ThermalReceiptData) {
       <head>
         <title>Receipt - ${data.invoiceNo}</title>
         <style>
-          @page {
-            margin: 0;
-            size: 80mm auto;
-          }
-          body {
-            font-family: 'Courier New', Courier, monospace, sans-serif;
-            font-size: 12px;
-            color: #000;
-            margin: 0;
-            padding: 4mm;
-            width: 80mm;
-            box-sizing: border-box;
-          }
+          @page { size: 80mm auto; margin: 0; }
+          body { font-family: monospace; width: 72mm; margin: 0 auto; padding: 4mm 0; font-size: 12px; color: #000; }
           .text-center { text-align: center; }
           .text-right { text-align: right; }
-          .text-left { text-align: left; }
+          .text-left { text-left: left; }
           .font-bold { font-weight: bold; }
-          .mb-1 { margin-bottom: 4px; }
           .mb-2 { margin-bottom: 8px; }
           .mt-2 { margin-top: 8px; }
           .border-bottom { border-bottom: 1px dashed #000; padding-bottom: 4px; margin-bottom: 4px; }
@@ -78,9 +59,9 @@ export function printThermalReceipt(data: ThermalReceiptData) {
       </head>
       <body>
         <div class="text-center mb-2">
-          <div style="font-size: 20px; font-weight: bold; margin-bottom: 4px;">PB</div>
+          <div style="background: #090d0a; padding: 4px 8px; border-radius: 8px; display: inline-block; margin-bottom: 6px;"><img src="${BRAND_LOGO}" alt="${BRAND_EN}" style="width: 130px; height: 50px; object-fit: contain; display: block;" /></div>
           <div class="font-bold" style="font-size: 16px;">${data.storeName || BRAND_EN}</div>
-          <div style="font-size: 11px; margin-top: 2px;">${data.storeAddress || ''}</div>
+          <div style="font-size: 11px; margin-top: 2px;">${data.storeAddress || BRAND_ADDRESS}</div>
           <div class="mt-2" style="font-size: 11px;">Ph: ${data.storePhone || BRAND_WHATSAPP}</div>
         </div>
         
@@ -143,10 +124,10 @@ export function printThermalReceipt(data: ThermalReceiptData) {
                 <td class="text-right">+${formatCurrency(data.totalGst || 0)}</td>
               </tr>
             ` : ''}
-            ${data.shipping > 0 ? `
+            ${(data.shipping || 0) > 0 ? `
               <tr>
                 <td class="text-left">Delivery</td>
-                <td class="text-right">${formatCurrency(data.shipping)}</td>
+                <td class="text-right">${formatCurrency(data.shipping || 0)}</td>
               </tr>
             ` : ''}
             <tr class="font-bold" style="font-size: 14px;">
@@ -164,18 +145,12 @@ export function printThermalReceipt(data: ThermalReceiptData) {
     </html>
   `
 
-  doc.open()
-  doc.write(html)
-  doc.close()
+  printWindow.document.open()
+  printWindow.document.write(html)
+  printWindow.document.close()
 
-  // Wait for resources to load
   setTimeout(() => {
-    iframe.contentWindow?.focus()
-    iframe.contentWindow?.print()
-    
-    // Cleanup
-    setTimeout(() => {
-      document.body.removeChild(iframe)
-    }, 1000)
+    printWindow.focus()
+    printWindow.print()
   }, 250)
 }

@@ -78,7 +78,7 @@ export function printThermalReceipt(data: ThermalReceiptData) {
       </head>
       <body>
         <div class="text-center mb-2">
-          <img src="${BRAND_LOGO}" alt="${BRAND_EN}" style="width: 150px; height: 56px; object-fit: contain; margin-bottom: 4px;" />
+          <div style="background: #090d0a; padding: 4px 8px; border-radius: 8px; display: inline-block; margin-bottom: 6px;"><img src="${BRAND_LOGO}" alt="${BRAND_EN}" style="width: 130px; height: 50px; object-fit: contain; display: block;" /></div>
           <div class="font-bold" style="font-size: 16px;">${data.storeName || BRAND_EN}</div>
           <div style="font-size: 11px; margin-top: 2px;">${data.storeAddress || BRAND_ADDRESS}</div>
           <div class="mt-2" style="font-size: 11px;">Ph: ${data.storePhone || BRAND_WHATSAPP}</div>

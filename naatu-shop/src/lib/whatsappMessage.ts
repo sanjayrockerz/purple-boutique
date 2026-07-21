@@ -1,6 +1,3 @@
-import { BRAND_ADDRESS, BRAND_EN, BRAND_PHONE_DISPLAY } from './brand'
-import { formatCurrency } from './retail'
-
 export type WhatsAppLineItem = {
   name: string
   qty: number
@@ -10,71 +7,60 @@ export type WhatsAppLineItem = {
   lineTotal: number
 }
 
-type BuildWhatsAppMessageInput = {
+export type BuildWhatsAppMessageInput = {
   customerName?: string
   phone?: string
   invoiceNumber: string
   invoiceDate?: string
   invoiceUrl?: string
   paymentMode?: string
-  items: WhatsAppLineItem[]
-  subtotal: number
+  items?: WhatsAppLineItem[]
+  subtotal?: number
   couponDiscount?: number
   manualDiscountAmount?: number
   shipping?: number
   gstAmount?: number
-  total: number
+  total?: number
 }
 
-export const publicInvoiceUrl = (invoiceNumber: string) =>
-  `${window.location.origin}/invoice/${encodeURIComponent(invoiceNumber)}`
+export const publicInvoiceUrl = (invoiceNumber: string) => {
+  const origin =
+    typeof window !== 'undefined' && window.location?.origin && !window.location.origin.includes('localhost')
+      ? window.location.origin
+      : 'https://purple-boutique.vercel.app'
+  return `${origin}/invoice/${encodeURIComponent(invoiceNumber)}`
+}
 
 export const buildProfessionalWhatsAppMessage = (input: BuildWhatsAppMessageInput) => {
-  const date = input.invoiceDate || new Date().toISOString()
-  const customerName = input.customerName || 'Valued Customer'
-  const paymentMode = input.paymentMode || 'POS'
-  const itemLines = input.items.map(item =>
-    `- ${item.name} Qty : ${item.qty} x ${formatCurrency(item.rate)} Amount : ${formatCurrency(item.lineTotal)}`
-  )
-  const optionalLines = [
-    input.couponDiscount ? `Coupon Discount : -${formatCurrency(input.couponDiscount)}` : '',
-    input.manualDiscountAmount ? `Manual Discount : -${formatCurrency(input.manualDiscountAmount)}` : '',
-    input.gstAmount ? `GST : ${formatCurrency(input.gstAmount)}` : '',
-    input.shipping ? `Delivery : ${formatCurrency(input.shipping)}` : '',
-  ].filter(Boolean)
+  const customerName = input.customerName?.trim() || 'Valued Customer'
+  const invoiceUrl = input.invoiceUrl || publicInvoiceUrl(input.invoiceNumber)
 
-  return [
-    `Thank you for shopping with ${BRAND_EN}!`,
-    `Dear *${customerName}*,`,
-    input.invoiceUrl ? `*Download Invoice PDF:* ${input.invoiceUrl}` : '',
-    '',
-    `We truly appreciate your purchase and hope you enjoyed your shopping experience with us.`,
-    '------------------',
-    '*INVOICE SUMMARY*',
-    '------------------',
-    `Invoice No : ${input.invoiceNumber}`,
-    `Date : ${date}`,
-    `Customer : ${customerName}`,
-    `Phone : ${input.phone || '-'}`,
-    '------------------',
-    '*ITEMS PURCHASED*',
-    '------------------',
-    ...itemLines,
-    '------------------',
-    '*BILL SUMMARY*',
-    '------------------',
-    `Subtotal : ${formatCurrency(input.subtotal)}`,
-    ...optionalLines,
-    `*Grand Total : ${formatCurrency(input.total)}*`,
-    `Payment Mode : ${paymentMode}`,
-    '',
-    `We sincerely thank you for choosing *${BRAND_EN}*.`,
-    `We look forward to serving you again.`,
-    `*${BRAND_EN}*`,
-    BRAND_ADDRESS,
-    BRAND_PHONE_DISPLAY,
-    'Have a wonderful day!',
-  ].filter(Boolean).join('\n')
+  return `💚 Thank You for Shopping with Purple Boutique! 💚
+
+Dear ${customerName},
+
+✨ Thank you for choosing Purple Boutique. We truly appreciate your support.
+
+🧾 Download Your Invoice & Receipt 👇
+📄 ${invoiceUrl}
+
+.
+
+.
+
+📸 Follow us on Instagram for our latest collections, exclusive offers & updates:
+https://www.instagram.com/purple_boutique05?igsh=N3NqaWljMTFvMmQ=r
+
+💬 We'd love your feedback! Your review helps us improve and means the world to us. 💚
+
+⭐ Leave your feedback here:
+https://forms.gle/JcTw9uVkH4K9YbcD8
+
+.
+
+💚 Thank you, and we hope to see you again soon!
+🙏 நன்றி! மீண்டும் சந்திப்போம்`
 }
 
 export const BUSINESS_PHONE = '60123456789'
+

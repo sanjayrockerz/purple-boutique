@@ -150,20 +150,28 @@ $$;
 alter table public.advance_orders enable row level security;
 alter table public.advance_order_timeline enable row level security;
 alter table public.advance_order_payments enable row level security;
-drop policy if exists "Authenticated users can read advance orders" on public.advance_orders;
-create policy "Authenticated users can read advance orders" on public.advance_orders for select to authenticated using (true);
-drop policy if exists "Authenticated users can read advance timeline" on public.advance_order_timeline;
-create policy "Authenticated users can read advance timeline" on public.advance_order_timeline for select to authenticated using (true);
-drop policy if exists "Authenticated users can read advance payments" on public.advance_order_payments;
-create policy "Authenticated users can read advance payments" on public.advance_order_payments for select to authenticated using (true);
-grant select on public.advance_orders,public.advance_order_timeline,public.advance_order_payments to authenticated;
-revoke all on function public.create_advance_order(text,text,text,text,text,text,numeric,numeric,date,text,text,text,jsonb) from public;
-revoke all on function public.update_advance_order_status(uuid,text,text) from public;
-revoke all on function public.add_advance_order_event(uuid,text,text,text) from public;
-revoke all on function public.complete_advance_order(uuid,text,text) from public;
-grant execute on function public.create_advance_order(text,text,text,text,text,text,numeric,numeric,date,text,text,text,jsonb) to authenticated;
-grant execute on function public.update_advance_order_status(uuid,text,text) to authenticated;
-grant execute on function public.add_advance_order_event(uuid,text,text,text) to authenticated;
-grant execute on function public.complete_advance_order(uuid,text,text) to authenticated;
+
+drop policy if exists "Allow all for advance orders" on public.advance_orders;
+create policy "Allow all for advance orders" on public.advance_orders for all using (true) with check (true);
+
+drop policy if exists "Allow all for advance timeline" on public.advance_order_timeline;
+create policy "Allow all for advance timeline" on public.advance_order_timeline for all using (true) with check (true);
+
+drop policy if exists "Allow all for advance payments" on public.advance_order_payments;
+create policy "Allow all for advance payments" on public.advance_order_payments for all using (true) with check (true);
+
+grant usage, select on sequence public.deposit_number_seq to public, anon, authenticated;
+grant usage, select on sequence public.invoice_number_seq to public, anon, authenticated;
+
+grant select, insert, update, delete on public.advance_orders to public, anon, authenticated;
+grant select, insert, update, delete on public.advance_order_timeline to public, anon, authenticated;
+grant select, insert, update, delete on public.advance_order_payments to public, anon, authenticated;
+
+grant execute on function public.create_advance_order(text,text,text,text,text,text,numeric,numeric,date,text,text,text,jsonb) to public, anon, authenticated;
+grant execute on function public.update_advance_order_status(uuid,text,text) to public, anon, authenticated;
+grant execute on function public.add_advance_order_event(uuid,text,text,text) to public, anon, authenticated;
+grant execute on function public.complete_advance_order(uuid,text,text) to public, anon, authenticated;
+
 notify pgrst, 'reload schema';
 commit;
+

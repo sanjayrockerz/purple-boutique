@@ -1268,8 +1268,8 @@ export default function Dashboard() {
         {/* Desktop brand header */}
         <div className={`hidden lg:flex items-center relative transition-all duration-300 ${sidebarCollapsed ? 'justify-center gap-1 pt-4 pb-4 px-1' : 'px-5 py-5'}`}>
           <div className={`flex items-center gap-3 min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'justify-center' : 'flex-1'}`}>
-            <div className={`flex items-center justify-center shrink-0 rounded-xl bg-white shadow-[0_4px_12px_rgba(17,24,39,0.10)] overflow-hidden ${sidebarCollapsed ? 'w-8 h-8' : 'w-12 h-12'}`}>
-              <img src="/Purple boutique logo.jpeg" alt="Logo" className="w-full h-full object-cover scale-[1.8]" />
+            <div className={`flex items-center justify-center shrink-0 rounded-xl bg-[#090d0a] border border-emerald-900/40 shadow-sm overflow-hidden p-0.5 ${sidebarCollapsed ? 'w-9 h-9' : 'w-11 h-11'}`}>
+              <img src="/purple-boutique-logo.jpeg" alt="Purple Boutique logo" className="w-full h-full object-contain" />
             </div>
             <h1 className={`${sidebarCollapsed ? 'hidden' : 'block'} text-[20px] font-black text-white truncate tracking-tight`}>Purple Boutique</h1>
           </div>
@@ -1286,8 +1286,8 @@ export default function Dashboard() {
         {/* Mobile mini-header */}
         <div className="flex lg:hidden items-center justify-between px-4 py-4 border-b border-white/10">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shrink-0 overflow-hidden shadow-sm">
-              <img src="/Purple boutique logo.jpeg" alt="Logo" className="w-full h-full object-cover scale-[1.8]" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#090d0a] border border-emerald-900/40 shrink-0 overflow-hidden shadow-sm p-0.5">
+              <img src="/purple-boutique-logo.jpeg" alt="Purple Boutique logo" className="w-full h-full object-contain" />
             </div>
             <span className="text-[15px] font-black text-white truncate">Purple Boutique</span>
           </div>
@@ -2599,7 +2599,7 @@ ve overflow-hidden rounded-2xl p-5 shadow-lg border border-white/20 bg-gradient-
           </div>
         )}
 
-        {tab === 'advance_orders' && <AdvanceOrders />}
+        {tab === 'advance_orders' && <AdvanceOrders onOrderCompleted={loadData} />}
 
         {/* ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ ORDER MANAGEMENT ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ */}
         {tab === 'history' && (

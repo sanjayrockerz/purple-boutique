@@ -43,7 +43,7 @@ export default function AdminLogin() {
       <div className="relative grid w-full max-w-5xl overflow-hidden rounded-[32px] border border-[#A7F3D0] bg-white shadow-[0_24px_80px_rgba(44,57,42,0.14)] lg:grid-cols-[0.9fr_1.1fr]">
         <div className="hidden flex-col justify-between bg-[#111111] p-10 text-white lg:flex">
           <div>
-            <div className="mb-8 flex h-16 w-40 items-center justify-center rounded-xl bg-white p-2 shadow-[0_4px_12px_rgba(17,24,39,0.10)] overflow-hidden"><img src={BRAND_LOGO} alt={`${BRAND_EN} logo`} className="h-full w-full object-contain" /></div>
+            <div className="mb-8 flex h-16 w-40 items-center justify-center rounded-2xl bg-[#090d0a] border border-emerald-900/40 p-2 shadow-xl overflow-hidden"><img src={BRAND_LOGO} alt={`${BRAND_EN} logo`} className="h-full w-full object-contain" /></div>
             <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[#B9D5C1]">{BRAND_SUBTITLE}</p>
             <h2 className="mt-4 max-w-xs text-4xl font-black leading-tight tracking-tight">Everything you need to run billing clearly.</h2>
             <p className="mt-5 max-w-sm text-sm leading-7 text-white/70">Manage products, bills, orders, invoices, and WhatsApp customer communication from one secure portal.</p>
@@ -53,7 +53,7 @@ export default function AdminLogin() {
         <div className="p-6 sm:p-10 lg:p-12">
         {/* Brand */}
         <div className="mb-8 flex flex-col items-center text-center lg:items-start lg:text-left">
-          <div className="mb-5 flex h-16 w-44 items-center justify-center rounded-xl bg-white p-2 shadow-[0_4px_12px_rgba(17,24,39,0.10)] overflow-hidden lg:hidden"><img src={BRAND_LOGO} alt={`${BRAND_EN} logo`} className="h-full w-full object-contain" /></div>
+          <div className="mb-5 flex h-16 w-44 items-center justify-center rounded-2xl bg-[#090d0a] border border-emerald-900/40 p-2 shadow-xl overflow-hidden lg:hidden"><img src={BRAND_LOGO} alt={`${BRAND_EN} logo`} className="h-full w-full object-contain" /></div>
           <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#047857]">{BRAND_SUBTITLE}</p>
           <h1 className="mt-2 text-3xl font-black tracking-tight text-[#111111]">{BRAND_EN}</h1>
           <p className="mt-1 text-sm font-semibold text-[#7A786F]">{BRAND_TA}</p>

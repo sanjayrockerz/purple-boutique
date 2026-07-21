@@ -53,11 +53,11 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps) 
   const [paymentForm, setPaymentForm] = useState({ method: 'cash' as AdvancePaymentMethod, remarks: '' })
 
   const load = useCallback(async () => {
-    if (!isSupabaseConfigured) { setError('Supabase is required for Advance Orders. Configure it and apply migration 0009_advance_orders.sql.'); setLoading(false); return }
     setLoading(true); setError('')
     try { setOrders(await listAdvanceOrders()) } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load advance orders') } finally { setLoading(false) }
   }, [])
   useEffect(() => { void load() }, [load])
+
 
   const openDetails = async (order: AdvanceOrder) => {
     setSelected(order); setTimeline([]); setPayments([])
@@ -118,9 +118,16 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps) 
   const invoiceFile = (order: AdvanceOrder) => invoicePdfFile({ invoiceNo: order.invoice_number || order.deposit_id, date: order.completed_at || new Date().toISOString(), customerName: order.customer_name, phone: order.phone, address: order.address, items: productRows(order), subtotal: order.total_amount, shipping: 0, total: order.total_amount, paymentMode: order.final_payment_method || 'Paid' })
   const printFinal = (order: AdvanceOrder) => printThermalReceipt({ invoiceNo: order.invoice_number || order.deposit_id, date: order.completed_at || new Date().toISOString(), customerName: order.customer_name, phone: order.phone, items: productRows(order).map(item => ({ name: String(item.name || 'Product'), qty: Number(item.quantity || 1), unit: String(item.unit || 'piece'), price: Number(item.base_price || 0), line_total: Number(item.line_total || 0) })), subtotal: order.total_amount, shipping: 0, total: order.total_amount })
   const whatsappInvoice = (order: AdvanceOrder) => {
-    const message = buildProfessionalWhatsAppMessage({ customerName: order.customer_name, phone: order.phone, invoiceNumber: order.invoice_number || order.deposit_id, invoiceDate: order.completed_at || undefined, invoiceUrl: publicInvoiceUrl(order.invoice_number || order.deposit_id), paymentMode: order.final_payment_method || 'Paid', items: productRows(order).map(item => ({ name: String(item.name || 'Product'), qty: Number(item.quantity || 1), unit: String(item.unit || 'piece'), unitType: ['weight','volume','bundle'].includes(String(item.unit_type)) ? String(item.unit_type) as 'weight'|'volume'|'bundle' : 'unit', rate: Number(item.base_price || 0), lineTotal: Number(item.line_total || 0) })), subtotal: order.total_amount, total: order.total_amount })
+    const invNum = order.invoice_number || order.deposit_id
+    const message = buildProfessionalWhatsAppMessage({
+      customerName: order.customer_name,
+      phone: order.phone,
+      invoiceNumber: invNum,
+      invoiceUrl: publicInvoiceUrl(invNum),
+    })
     window.open(toWhatsAppUrl(order.phone, message), '_blank', 'noopener,noreferrer')
   }
+
 
   const addEvent = async (order: AdvanceOrder, eventType: string, label: string) => {
     try { await addAdvanceEvent(order.id, eventType, label); await openDetails(order); setNotice(`${label} added to ${order.deposit_id}.`) } catch (err) { setError(err instanceof Error ? err.message : 'Unable to add timeline event') }

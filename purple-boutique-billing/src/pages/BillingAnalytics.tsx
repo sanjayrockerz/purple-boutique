@@ -571,11 +571,9 @@ export default function BillingAnalytics() {
       <div className="mx-auto max-w-[1600px] px-4 py-4 sm:px-6 lg:px-8">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div className="admin-logo-lockup min-w-[280px]">
-            <div className="admin-logo-mark shrink-0 rounded-[22px] border border-[#D1FAE5] bg-white p-2 shadow-[0_10px_28px_rgba(17,24,39,0.10)]">
-              <div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-[#FCFBF7] ring-1 ring-[#F2E7D2]">
-                <img src={BRAND_LOGO} alt={`${BRAND_EN} logo`} className="h-10 w-24 object-contain" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-[#090d0a] border border-emerald-900/40 p-1 shadow-sm overflow-hidden">
+                <img src={BRAND_LOGO} alt={`${BRAND_EN} logo`} className="h-full w-full object-contain" />
               </div>
-            </div>
             <div className="min-w-0">
               <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#5F5F5F]">Admin Billing</p>
               <h1 className="mt-1 truncate text-2xl font-black text-[#111111]">{l('Billing Analytics', 'பில் பகுப்பாய்வு')}</h1>

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Lock, Eye, EyeOff, Building2 } from 'lucide-react'
 import { useAuthStore } from '../store/store'
-import { BRAND_EN } from '../lib/brand'
+import { BRAND_EN, BRAND_LOGO } from '../lib/brand'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -34,8 +34,8 @@ export default function Login() {
     <div className="min-h-screen bg-bgMain flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-2xl border border-borderLight shadow-card overflow-hidden">
         <div className="bg-gradient-to-br from-primary to-primary-dark p-6 text-center">
-          <div className="w-16 h-16 bg-white/15 backdrop-blur rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Building2 size={32} className="text-white" />
+          <div className="w-16 h-16 bg-[#090d0a] border border-emerald-900/40 p-1 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-md overflow-hidden">
+            <img src={BRAND_LOGO} alt={BRAND_EN} className="w-full h-full object-contain" />
           </div>
           <h1 className="text-xl font-black text-white">{BRAND_EN}</h1>
           <p className="text-white/70 text-[12px] font-medium mt-1">Admin Login</p>

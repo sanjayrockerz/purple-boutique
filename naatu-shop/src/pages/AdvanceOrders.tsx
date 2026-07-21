@@ -26,10 +26,14 @@ const STATUS_STYLES: Record<AdvanceStatus, string> = {
 const initialForm = { customerName: '', phone: '', address: '', productName: '', category: '', description: '', totalAmount: '', depositAmount: '', expectedDeliveryDate: '', status: 'pending_deposit' as AdvanceStatus, remarks: '', paymentMethod: 'cash' as AdvancePaymentMethod }
 const dateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 
+type AdvanceOrdersProps = {
+  onOrderCompleted?: (order?: AdvanceOrder) => void
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="block"><span className="mb-1.5 block text-[11px] font-black uppercase tracking-wide text-[#6B7280]">{label}</span>{children}</label> }
 const inputClass = 'w-full rounded-xl border border-[#E5E7EB] bg-white px-3.5 py-2.5 text-sm text-[#273126] outline-none transition focus:border-[#7e22ce] focus:ring-2 focus:ring-violet-100'
 
-export default function AdvanceOrders() {
+export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps = {}) {
   const user = useAuthStore(state => state.user)
   const products = useProductStore(state => state.products)
   const [orders, setOrders] = useState<AdvanceOrder[]>([])
@@ -49,11 +53,11 @@ export default function AdvanceOrders() {
   const [paymentForm, setPaymentForm] = useState({ method: 'cash' as AdvancePaymentMethod, remarks: '' })
 
   const load = useCallback(async () => {
-    if (!isSupabaseConfigured) { setError('Supabase is required for Advance Orders. Configure it and apply migration 0009_advance_orders.sql.'); setLoading(false); return }
     setLoading(true); setError('')
     try { setOrders(await listAdvanceOrders()) } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load advance orders') } finally { setLoading(false) }
   }, [])
   useEffect(() => { void load() }, [load])
+
 
   const openDetails = async (order: AdvanceOrder) => {
     setSelected(order); setTimeline([]); setPayments([])
@@ -106,7 +110,7 @@ export default function AdvanceOrders() {
     try {
       const result = await completeAdvanceOrder(paymentOrder.id, paymentForm.method, paymentForm.remarks)
       const completed: AdvanceOrder = { ...paymentOrder, status: 'completed', remaining_balance: paymentOrder.remaining_balance, completed_at: result.completed_at, completed_order_id: result.order_id, invoice_number: result.invoice_no, final_payment_method: paymentForm.method }
-      setOrders(rows => rows.map(row => row.id === completed.id ? completed : row)); setPaymentOrder(null); setPaymentForm({ method: 'cash', remarks: '' }); setNotice(`${result.invoice_no} generated once. The full ${formatCurrency(completed.total_amount)} is now recognized as revenue.`)
+      setOrders(rows => rows.map(row => row.id === completed.id ? completed : row)); onOrderCompleted?.(completed); setPaymentOrder(null); setPaymentForm({ method: 'cash', remarks: '' }); setNotice(`${result.invoice_no} generated once. The full ${formatCurrency(completed.total_amount)} is now recognized as revenue.`)
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to complete payment') } finally { setSaving(false) }
   }
 
@@ -114,9 +118,16 @@ export default function AdvanceOrders() {
   const invoiceFile = (order: AdvanceOrder) => invoicePdfFile({ invoiceNo: order.invoice_number || order.deposit_id, date: order.completed_at || new Date().toISOString(), customerName: order.customer_name, phone: order.phone, address: order.address, items: productRows(order), subtotal: order.total_amount, shipping: 0, total: order.total_amount, paymentMode: order.final_payment_method || 'Paid' })
   const printFinal = (order: AdvanceOrder) => printThermalReceipt({ invoiceNo: order.invoice_number || order.deposit_id, date: order.completed_at || new Date().toISOString(), customerName: order.customer_name, phone: order.phone, items: productRows(order).map(item => ({ name: String(item.name || 'Product'), qty: Number(item.quantity || 1), unit: String(item.unit || 'piece'), price: Number(item.base_price || 0), line_total: Number(item.line_total || 0) })), subtotal: order.total_amount, shipping: 0, total: order.total_amount })
   const whatsappInvoice = (order: AdvanceOrder) => {
-    const message = buildProfessionalWhatsAppMessage({ customerName: order.customer_name, phone: order.phone, invoiceNumber: order.invoice_number || order.deposit_id, invoiceDate: order.completed_at || undefined, invoiceUrl: publicInvoiceUrl(order.invoice_number || order.deposit_id), paymentMode: order.final_payment_method || 'Paid', items: productRows(order).map(item => ({ name: String(item.name || 'Product'), qty: Number(item.quantity || 1), unit: String(item.unit || 'piece'), unitType: ['weight','volume','bundle'].includes(String(item.unit_type)) ? String(item.unit_type) as 'weight'|'volume'|'bundle' : 'unit', rate: Number(item.base_price || 0), lineTotal: Number(item.line_total || 0) })), subtotal: order.total_amount, total: order.total_amount })
+    const invNum = order.invoice_number || order.deposit_id
+    const message = buildProfessionalWhatsAppMessage({
+      customerName: order.customer_name,
+      phone: order.phone,
+      invoiceNumber: invNum,
+      invoiceUrl: publicInvoiceUrl(invNum),
+    })
     window.open(toWhatsAppUrl(order.phone, message), '_blank', 'noopener,noreferrer')
   }
+
 
   const addEvent = async (order: AdvanceOrder, eventType: string, label: string) => {
     try { await addAdvanceEvent(order.id, eventType, label); await openDetails(order); setNotice(`${label} added to ${order.deposit_id}.`) } catch (err) { setError(err instanceof Error ? err.message : 'Unable to add timeline event') }

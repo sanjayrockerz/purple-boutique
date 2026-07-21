@@ -31,8 +31,22 @@ export function getSubscriberDigits(input: string): string | null {
   return normalized ? normalized.slice(2) : null
 }
 
-export function toWhatsAppUrl(phone: string, fallback?: string): string {
-  const normalized = normalizeMalaysianPhone(phone)
-  if (normalized) return `https://wa.me/${normalized}`
-  return fallback ?? BRAND_WHATSAPP_LINK
+export function toWhatsAppUrl(phone: string, text?: string): string {
+  const textParam = text ? `?text=${encodeURIComponent(text)}` : ''
+  if (!phone) return `${BRAND_WHATSAPP_LINK}${textParam}`
+
+  const digits = phone.replace(/\D/g, '')
+  let normalized = digits
+
+  if (digits.length === 10) {
+    normalized = '91' + digits
+  } else if (digits.length === 11 && digits.startsWith('0')) {
+    normalized = '91' + digits.slice(1)
+  }
+
+  if (normalized) {
+    return `https://wa.me/${normalized}${textParam}`
+  }
+  return `${BRAND_WHATSAPP_LINK}${textParam}`
 }
+

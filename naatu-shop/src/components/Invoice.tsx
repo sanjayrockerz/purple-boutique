@@ -1,5 +1,5 @@
 import React from 'react'
-import { BRAND_ADDRESS, BRAND_EN, BRAND_PHONE_DISPLAY } from '../lib/brand'
+import { BRAND_ADDRESS, BRAND_EN, BRAND_LOGO, BRAND_PHONE_DISPLAY } from '../lib/brand'
 import { formatCurrency, formatQuantityDisplay, normalizeStructuredOrderItem } from '../lib/retail'
 
 export interface InvoiceItem {
@@ -84,8 +84,8 @@ export const Invoice: React.FC<InvoiceProps> = ({
     >
       {/* ── HEADER ────────────────────────────────────────────────── */}
       <div style={{ textAlign: 'center', borderBottom: '1px solid #e5e7eb', paddingBottom: 24, marginBottom: 24 }}>
-        <div style={{ width: 80, height: 80, margin: '0 auto', marginBottom: 12, borderRadius: 50, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <img src="/Purple boutique logo.jpeg" alt="Purple Boutique Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <div style={{ width: 84, height: 84, margin: '0 auto', marginBottom: 12, borderRadius: 16, background: '#090d0a', padding: 4, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.12)' }}>
+          <img src={BRAND_LOGO} alt="Purple Boutique Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         </div>
         <div style={{ fontSize: 24, fontWeight: 900, color: '#7e22ce', letterSpacing: -0.5, textTransform: 'uppercase' }}>
           {BRAND_EN}

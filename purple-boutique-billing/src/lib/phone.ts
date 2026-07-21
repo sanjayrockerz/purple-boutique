@@ -58,8 +58,10 @@ export function getSubscriberDigits(input: string): string | null {
  * Builds a wa.me URL for the given Indian phone number.
  * Falls back to the store's WhatsApp link if the number is invalid.
  */
-export function toWhatsAppUrl(phone: string, fallback?: string): string {
+export function toWhatsAppUrl(phone: string, text?: string): string {
+  const textParam = text ? `?text=${encodeURIComponent(text)}` : ''
   const normalized = normalizeIndianPhone(phone)
-  if (normalized) return `https://wa.me/${normalized}`
-  return fallback ?? BRAND_WHATSAPP_LINK
+  if (normalized) return `https://wa.me/${normalized}${textParam}`
+  return `${BRAND_WHATSAPP_LINK}${textParam}`
 }
+

@@ -1269,7 +1269,7 @@ export default function Dashboard() {
         <div className={`hidden lg:flex items-center relative transition-all duration-300 ${sidebarCollapsed ? 'justify-center gap-1 pt-4 pb-4 px-1' : 'px-5 py-5'}`}>
           <div className={`flex items-center gap-3 min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'justify-center' : 'flex-1'}`}>
             <div className={`flex items-center justify-center shrink-0 rounded-xl bg-[#090d0a] border border-emerald-900/40 shadow-sm overflow-hidden p-0.5 ${sidebarCollapsed ? 'w-9 h-9' : 'w-11 h-11'}`}>
-              <img src="/purple-boutique-logo.jpeg" alt="Purple Boutique logo" className="w-full h-full object-contain" />
+              <img src={BRAND_LOGO} alt="Purple Boutique Logo" className="w-full h-full object-contain" />
             </div>
             <h1 className={`${sidebarCollapsed ? 'hidden' : 'block'} text-[20px] font-black text-white truncate tracking-tight`}>Purple Boutique</h1>
           </div>
@@ -1287,7 +1287,7 @@ export default function Dashboard() {
         <div className="flex lg:hidden items-center justify-between px-4 py-4 border-b border-white/10">
           <div className="flex items-center gap-2 min-w-0">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#090d0a] border border-emerald-900/40 shrink-0 overflow-hidden shadow-sm p-0.5">
-              <img src="/purple-boutique-logo.jpeg" alt="Purple Boutique logo" className="w-full h-full object-contain" />
+              <img src={BRAND_LOGO} alt="Purple Boutique Logo" className="w-full h-full object-contain" />
             </div>
             <span className="text-[15px] font-black text-white truncate">Purple Boutique</span>
           </div>

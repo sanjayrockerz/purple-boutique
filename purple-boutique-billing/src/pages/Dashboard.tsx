@@ -158,10 +158,11 @@ export default function Dashboard() {
 
   // Search & date filter
   const [search, setSearch] = useState({ invoiceNo: '', phone: '', customerName: '', dateFrom: '', dateTo: '' })
+  const [todayBillsSearch, setTodayBillsSearch] = useState('')
+  const [productAnalyticsSearch, setProductAnalyticsSearch] = useState('')
   const [datePreset, setDatePreset] = useState<'today' | 'week' | 'month' | 'custom' | ''>('')
   const [searchResults, setSearchResults] = useState<DashboardOrder[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
-  const [todayBillsSearch, setTodayBillsSearch] = useState('')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
       return window.localStorage.getItem('dashboard-sidebar-collapsed') === '1'
@@ -470,6 +471,14 @@ export default function Dashboard() {
       return { day: dayName, date: k, revenue: weeklyRevenueMap.get(k) || 0 }
     })
 
+    const currentMonthDate = new Date()
+    const daysInCurrentMonth = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 0).getDate()
+    const monthDailySales = Array.from({ length: daysInCurrentMonth }, (_, i) => {
+      const d = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth(), i + 1)
+      const k = toLocalDateKey(d)
+      return { day: `${i + 1}`, date: `${i + 1}/${currentMonthDate.getMonth() + 1}`, label: `Day ${i + 1}`, revenue: weeklyRevenueMap.get(k) || 0 }
+    })
+
     const statusDistribution = [
       { name: 'WA Requests', value: waOrders.length, color: '#3b82f6' },
       { name: 'POS Pending', value: pendingOrders.filter(o => normalizeOrderType(o.order_type) !== 'online_request').length, color: '#f59e0b' },
@@ -575,6 +584,7 @@ export default function Dashboard() {
       // Keep the bill count separate from revenue so the TOTAL ONLINE BILLS
       // card stays visible and always reflects the current completed orders.
       onlineBillCount: onlinePOS.length,
+      monthDailySales,
       offlineOrderCount: offlinePOS.length,
       manualRevenue: manualRevenue || totalManualRevenue,
       monthlyRevenue,
@@ -2092,10 +2102,10 @@ export default function Dashboard() {
                 {/* Key metrics row */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[
-                    { label: "Today's Revenue", value: formatCurrency(analytics.todaySales), icon: <BadgeDollarSign size={18} />, from: 'from-emerald-500 to-teal-600', to: 'via-emerald-600/40' },
-                    { label: 'Orders', value: String(analytics.todayCompletedOrdersCount), icon: <ShoppingCart size={18} />, from: 'from-blue-500 to-indigo-600', to: 'via-indigo-600/40' },
-                    { label: 'Items Sold', value: String(Math.round(analytics.todayItemsSold)), icon: <Package size={18} />, from: 'from-violet-500 to-purple-600', to: 'via-purple-600/40' },
-                    { label: 'Avg Order', value: formatCurrency(analytics.todayAvgOrderValue), icon: <TrendingUp size={18} />, from: 'from-amber-500 to-orange-600', to: 'via-orange-600/40' },
+                    { label: "Today's Revenue", value: formatCurrency(analytics.todaySales), icon: <BadgeDollarSign size={18} />, from: 'from-emerald-500 to-teal-600' },
+                    { label: 'Orders', value: String(analytics.todayCompletedOrdersCount), icon: <ShoppingCart size={18} />, from: 'from-blue-500 to-indigo-600' },
+                    { label: 'Items Sold', value: String(Math.round(analytics.todayItemsSold)), icon: <Package size={18} />, from: 'from-violet-500 to-purple-600' },
+                    { label: 'Avg Order Value', value: formatCurrency(analytics.todayAvgOrderValue), icon: <Trophy size={18} />, from: 'from-amber-500 to-orange-600' },
                   ].map((card, i) => (
                     <div key={i} className={`relative overflow-hidden rounded-2xl p-5 shadow-lg border border-white/20 bg-gradient-to-br ${card.from}`}>
                       <div className="absolute inset-0 bg-gradient-to-tl from-white/30 via-white/10 to-transparent" />
@@ -2104,37 +2114,55 @@ export default function Dashboard() {
                           <p className="text-[10px] uppercase font-black text-white/80 tracking-wider">{card.label}</p>
                           <div className="w-9 h-9 rounded-xl bg-white/25 backdrop-blur-sm flex items-center justify-center text-white shadow-sm">{card.icon}</div>
                         </div>
-                        <p className="text-[26px] font-extrabold text-white drop-shadow-sm">{card.value}</p>
+                        <p className="text-[22px] font-extrabold text-white drop-shadow-sm truncate">{card.value}</p>
                       </div>
                     </div>
                   ))}
                 </div>
 
-                {/* Hourly trend + Top products */}
+                {/* Dynamic Trend Graph + Top products */}
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                  <div className="xl:col-span-2 bg-white rounded-2xl border border-[#D1FAE5]/30 p-5 shadow-sm">
-                    <h3 className="text-[15px] font-bold text-[#111111] mb-4">Hourly Sales Trend</h3>
-                    <div className="h-64">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={analytics.todayHourlyTrend.filter(h => h.revenue > 0)}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-                          <XAxis dataKey="hour" tick={{ fill: '#6B7280', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} interval={0} angle={-45} textAnchor="end" height={50} />
-                          <YAxis hide />
-                          <Tooltip cursor={{ fill: '#F9FAFB' }} formatter={(value) => formatCurrency(toNumber(value as number | string, 0))} />
-                          <Bar dataKey="revenue" fill="url(#todayGrad)" radius={[4, 4, 0, 0]} barSize={20} />
-                          <defs>
-                            <linearGradient id="todayGrad" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#10B981" />
-                              <stop offset="100%" stopColor="#111111" />
-                            </linearGradient>
-                          </defs>
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                    {analytics.todayHourlyTrend.filter(h => h.revenue > 0).length === 0 && (
-                      <p className="text-center text-[13px] text-[#374151] py-8">No sales recorded today yet.</p>
-                    )}
-                  </div>
+                  {(() => {
+                    let chartData: Array<{ hour: string; revenue: number }> = []
+                    let chartTitle = 'Hourly Sales Trend (Today)'
+
+                    if (analyticsDatePreset === 'week') {
+                      chartData = analytics.weeklySales.map(w => ({ hour: w.day, revenue: w.revenue }))
+                      chartTitle = 'Daily Sales Trend (This Week)'
+                    } else if (analyticsDatePreset === 'month') {
+                      chartData = analytics.monthDailySales.map(m => ({ hour: m.date, revenue: m.revenue }))
+                      chartTitle = 'Daily Sales Trend (This Month)'
+                    } else if (analyticsDatePreset === 'all' || analyticsDatePreset === 'year') {
+                      chartData = analytics.monthlyTrend.map(m => ({ hour: m.month, revenue: m.revenue }))
+                      chartTitle = 'Monthly Sales Trend (All Time)'
+                    } else {
+                      chartData = analytics.todayHourlyTrend.map(h => ({ hour: h.hour, revenue: h.revenue }))
+                      chartTitle = 'Hourly Sales Trend (Today)'
+                    }
+
+                    return (
+                      <div className="xl:col-span-2 bg-white rounded-2xl border border-[#D1FAE5]/30 p-5 shadow-sm">
+                        <h3 className="text-[15px] font-bold text-[#111111] mb-4">{chartTitle}</h3>
+                        <div className="h-72">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={chartData}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+                              <XAxis dataKey="hour" tick={{ fill: '#6B7280', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} interval={0} angle={-45} textAnchor="end" height={50} />
+                              <YAxis hide />
+                              <Tooltip cursor={{ fill: '#F9FAFB' }} formatter={(value) => formatCurrency(toNumber(value as number | string, 0))} />
+                              <Bar dataKey="revenue" fill="url(#todayGrad)" radius={[4, 4, 0, 0]} barSize={20} />
+                              <defs>
+                                <linearGradient id="todayGrad" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="0%" stopColor="#10B981" />
+                                  <stop offset="100%" stopColor="#111111" />
+                                </linearGradient>
+                              </defs>
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    )
+                  })()}
 
                   <div className="bg-white rounded-2xl border border-[#D1FAE5]/30 p-5 shadow-sm">
                     <h3 className="text-[15px] font-bold text-[#111111] mb-4">Top Products Today</h3>
@@ -2217,11 +2245,11 @@ export default function Dashboard() {
             {/* Products sub-tab */}
             {posAnalyticsTab === 'products' && (
               <div className="space-y-6">
-                {/* Key metrics row */}
+                {/* Key metrics row: Revenue is 1st KPI card */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[
-                    { label: 'Total Products Sold', value: String(Math.round(analytics.totalProductsSold)), icon: <Package size={18} />, from: 'from-emerald-500 to-teal-600' },
-                    { label: 'Total Revenue', value: formatCurrency(analytics.totalCompletedRevenue), icon: <BadgeDollarSign size={18} />, from: 'from-blue-500 to-indigo-600' },
+                    { label: 'Total Product Revenue', value: formatCurrency(analytics.totalCompletedRevenue), icon: <BadgeDollarSign size={18} />, from: 'from-emerald-500 to-teal-600' },
+                    { label: 'Total Products Sold', value: String(Math.round(analytics.totalProductsSold)), icon: <Package size={18} />, from: 'from-blue-500 to-indigo-600' },
                     { label: 'Average Product Revenue', value: `${formatCurrency(analytics.averageProductRevenue)} / Product`, icon: <BadgeDollarSign size={18} />, from: 'from-violet-500 to-purple-600' },
                     { label: 'Top Product', value: analytics.bestProduct.length > 15 ? analytics.bestProduct.slice(0, 15) + '...' : analytics.bestProduct, icon: <Trophy size={18} />, from: 'from-amber-500 to-orange-600' },
                   ].map((card, i) => (
@@ -2238,119 +2266,93 @@ export default function Dashboard() {
                   ))}
                 </div>
 
-                {/* Product hourly trend + Top categories */}
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                  <div className="xl:col-span-2 bg-white rounded-2xl border border-[#D1FAE5]/30 p-5 shadow-sm">
-                    <h3 className="text-[15px] font-bold text-[#111111] mb-4">Product Sales Hourly Trend</h3>
-                    <div className="h-64">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={analytics.todayProductHourlyTrend.filter(h => h.qty > 0)}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-                          <XAxis dataKey="hour" tick={{ fill: '#6B7280', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} interval={0} angle={-45} textAnchor="end" height={50} />
-                          <YAxis hide />
-                          <Tooltip cursor={{ fill: '#F9FAFB' }} formatter={(value) => [`${value} items`, 'Qty Sold']} />
-                          <Bar dataKey="qty" fill="url(#prodGrad)" radius={[4, 4, 0, 0]} barSize={20} />
-                          <defs>
-                            <linearGradient id="prodGrad" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#10B981" />
-                              <stop offset="100%" stopColor="#111111" />
-                            </linearGradient>
-                          </defs>
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                    {analytics.todayProductHourlyTrend.filter(h => h.qty > 0).length === 0 && (
-                      <p className="text-center text-[13px] text-[#374151] py-8">No product sales recorded today yet.</p>
-                    )}
-                  </div>
-
-                  <div className="bg-white rounded-2xl border border-[#D1FAE5]/30 p-5 shadow-sm">
-                    <h3 className="text-[15px] font-bold text-[#111111] mb-4">Top Categories</h3>
-                    <div className="space-y-3">
-                      {analytics.topCategories.slice(0, 6).map((c) => (
-                        <div key={c.name} className="flex items-center justify-between bg-[#F9FAFB] p-3 rounded-xl">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[13px] font-bold text-[#111111] truncate">{c.name}</p>
-                            <p className="text-[11px] text-[#374151]">{Math.round(c.qty)} sold</p>
-                          </div>
-                          <p className="text-[13px] font-black text-[#10B981] ml-2">{formatCurrency(c.revenue)}</p>
-                        </div>
-                      ))}
-                      {analytics.topCategories.length === 0 && (
-                        <p className="text-center text-[13px] text-[#374151] py-6">No categories yet.</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Full product table */}
+                {/* Full product table with Search by Name, SKU, Category */}
                 <div className="bg-white rounded-2xl border border-[#D1FAE5]/30 p-5 shadow-sm">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-[15px] font-bold text-[#111111]">All Products</h3>
-                    <span className="text-[11px] font-bold text-[#10B981]">{analytics.topProducts.length} products</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                    <div>
+                      <h3 className="text-[15px] font-bold text-[#111111]">All Products Analytics</h3>
+                      <p className="text-[12px] text-[#6B7280]">Search by Product Name, SKU, or Category for instant statistics</p>
+                    </div>
+                    <span className="text-[11px] font-bold text-[#10B981] bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 self-start sm:self-auto">{analytics.topProducts.length} products</span>
                   </div>
-                  {analytics.topProducts.length > 0 ? (
-                    <>
-                    <div className="space-y-3 md:hidden">
-                      {analytics.topProducts.slice(0, 50).map((p, i) => (
-                        <div key={`${p.name}-${p.variant || i}`} className="rounded-2xl border border-[#D1FAE5]/30 bg-[#FBFAF6] p-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="text-[13px] font-black text-[#9BAB9A]">#{i + 1}</p>
-                              <p className="text-[16px] font-bold text-[#111111] break-words">{p.name}</p>
-                              <p className="text-[13px] text-[#374151]">{p.variant || 'No variant'}</p>
+                  <div className="mb-4">
+                    <input
+                      type="text"
+                      placeholder="Search by Product Name, SKU, or Category..."
+                      value={productAnalyticsSearch}
+                      onChange={e => setProductAnalyticsSearch(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-[#F9FAFB] border border-[#D1FAE5]/60 rounded-xl text-[13px] font-bold text-[#111111] placeholder:text-[#8A9384] focus:outline-none focus:border-[#047857] transition-colors"
+                    />
+                  </div>
+                  {(() => {
+                    const filteredProds = analytics.topProducts.filter(p => {
+                      if (!productAnalyticsSearch.trim()) return true
+                      const q = productAnalyticsSearch.toLowerCase()
+                      return p.name.toLowerCase().includes(q) || (p.variant && p.variant.toLowerCase().includes(q))
+                    })
+                    return filteredProds.length > 0 ? (
+                      <>
+                      <div className="space-y-3 md:hidden">
+                        {filteredProds.slice(0, 50).map((p, i) => (
+                          <div key={`${p.name}-${p.variant || i}`} className="rounded-2xl border border-[#D1FAE5]/30 bg-[#FBFAF6] p-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="text-[13px] font-black text-[#9BAB9A]">#{i + 1}</p>
+                                <p className="text-[16px] font-bold text-[#111111] break-words">{p.name}</p>
+                                <p className="text-[13px] text-[#374151]">{p.variant || 'No variant'}</p>
+                              </div>
+                              <p className="text-[14px] font-black text-emerald-700">{formatCurrency(p.revenue)}</p>
                             </div>
-                            <p className="text-[14px] font-black text-emerald-700">{formatCurrency(p.revenue)}</p>
+                            <div className="mt-3 grid grid-cols-2 gap-3 text-[13px]">
+                              <div>
+                                <p className="text-[#9BAB9A] uppercase text-[11px] font-black">Qty Sold</p>
+                                <p className="font-bold text-[#111111]">{Math.round(p.qty)}</p>
+                              </div>
+                              <div>
+                                <p className="text-[#9BAB9A] uppercase text-[11px] font-black">Bills</p>
+                                <p className="font-bold text-[#111111]">{p.billCount}</p>
+                              </div>
+                              <div>
+                                <p className="text-[#9BAB9A] uppercase text-[11px] font-black">Avg Revenue/Bill</p>
+                                <p className="font-bold text-[#111111]">{formatCurrency(p.billCount > 0 ? p.revenue / p.billCount : 0)}</p>
+                              </div>
+                            </div>
                           </div>
-                          <div className="mt-3 grid grid-cols-2 gap-3 text-[13px]">
-                            <div>
-                              <p className="text-[#9BAB9A] uppercase text-[11px] font-black">Qty Sold</p>
-                              <p className="font-bold text-[#111111]">{Math.round(p.qty)}</p>
-                            </div>
-                            <div>
-                              <p className="text-[#9BAB9A] uppercase text-[11px] font-black">Bills</p>
-                              <p className="font-bold text-[#111111]">{p.billCount}</p>
-                            </div>
-                            <div>
-                              <p className="text-[#9BAB9A] uppercase text-[11px] font-black">Avg Revenue/Bill</p>
-                              <p className="font-bold text-[#111111]">{formatCurrency(p.billCount > 0 ? p.revenue / p.billCount : 0)}</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="hidden md:block overflow-x-auto rounded-xl border border-[#D1FAE5]/30">
-                      <table className="w-full min-w-[580px] text-left text-[12px]">
-                        <thead className="bg-[#F9FAFB] text-[10px] uppercase tracking-wider text-[#374151]">
-                          <tr>
-                            <th className="px-4 py-2.5 font-black">#</th>
-                            <th className="px-4 py-2.5 font-black">Product</th>
-                            <th className="px-4 py-2.5 font-black">Variant</th>
-                            <th className="px-4 py-2.5 font-black">Qty Sold</th>
-                            <th className="px-4 py-2.5 font-black">Revenue</th>
-                            <th className="px-4 py-2.5 font-black">Bills</th>
-                            <th className="px-4 py-2.5 font-black">Avg Revenue/Bill</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[#D1FAE5]/20">
-                          {analytics.topProducts.slice(0, 50).map((p, i) => (
-                            <tr key={`${p.name}-${p.variant || i}`} className="hover:bg-[#F9FAFB]/50">
-                              <td className="px-4 py-2 text-[11px] text-[#9BAB9A] font-bold">{i + 1}</td>
-                              <td className="px-4 py-2 font-bold text-[#111111]">{p.name}</td>
-                              <td className="px-4 py-2 text-[#374151]">{p.variant || '-'}</td>
-                              <td className="px-4 py-2 font-bold">{Math.round(p.qty)}</td>
-                              <td className="px-4 py-2 font-bold text-emerald-700">{formatCurrency(p.revenue)}</td>
-                              <td className="px-4 py-2 text-[#374151]">{p.billCount}</td>
-                              <td className="px-4 py-2 font-bold text-[#111111]">{formatCurrency(p.billCount > 0 ? p.revenue / p.billCount : 0)}</td>
+                        ))}
+                      </div>
+                      <div className="hidden md:block overflow-x-auto rounded-xl border border-[#D1FAE5]/30">
+                        <table className="w-full min-w-[580px] text-left text-[12px]">
+                          <thead className="bg-[#F9FAFB] text-[10px] uppercase tracking-wider text-[#374151]">
+                            <tr>
+                              <th className="px-4 py-2.5 font-black">#</th>
+                              <th className="px-4 py-2.5 font-black">Product</th>
+                              <th className="px-4 py-2.5 font-black">Variant / SKU</th>
+                              <th className="px-4 py-2.5 font-black">Qty Sold</th>
+                              <th className="px-4 py-2.5 font-black">Revenue</th>
+                              <th className="px-4 py-2.5 font-black">Bills</th>
+                              <th className="px-4 py-2.5 font-black">Avg Revenue/Bill</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    </>
-                  ) : (
-                    <p className="text-center text-[13px] text-[#374151] py-6">No product sales in selected period</p>
-                  )}
+                          </thead>
+                          <tbody className="divide-y divide-[#D1FAE5]/20">
+                            {filteredProds.slice(0, 50).map((p, i) => (
+                              <tr key={`${p.name}-${p.variant || i}`} className="hover:bg-[#F9FAFB]/50">
+                                <td className="px-4 py-2 text-[11px] text-[#9BAB9A] font-bold">{i + 1}</td>
+                                <td className="px-4 py-2 font-bold text-[#111111]">{p.name}</td>
+                                <td className="px-4 py-2 text-[#374151]">{p.variant || '-'}</td>
+                                <td className="px-4 py-2 font-bold">{Math.round(p.qty)}</td>
+                                <td className="px-4 py-2 font-bold text-emerald-700">{formatCurrency(p.revenue)}</td>
+                                <td className="px-4 py-2 text-[#374151]">{p.billCount}</td>
+                                <td className="px-4 py-2 font-bold text-[#111111]">{formatCurrency(p.billCount > 0 ? p.revenue / p.billCount : 0)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      </>
+                    ) : (
+                      <p className="text-center text-[13px] text-[#374151] py-6">{productAnalyticsSearch ? 'No products match your search query.' : 'No product sales in selected period'}</p>
+                    )
+                  })()}
                 </div>
               </div>
             )}

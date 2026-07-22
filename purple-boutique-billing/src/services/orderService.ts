@@ -155,11 +155,26 @@ export const createOrderWithStock = async (input: CreateOrderInput): Promise<Cre
     throw new Error('Order RPC returned an invalid payload')
   }
   const rowObj = row as Record<string, unknown>
-  // DB returns camelCase keys (orderId, invoiceNo) OR snake_case (order_id, invoice_no)
   const orderId = String(rowObj.order_id ?? rowObj.orderId ?? rowObj.id ?? '')
-  const invoiceNo = String(rowObj.invoice_no ?? rowObj.invoiceNo ?? rowObj.invoiceNo ?? '')
+  const invoiceNo = String(rowObj.invoice_no ?? rowObj.invoiceNo ?? '')
   if (!orderId || !invoiceNo) {
     throw new Error('Order RPC returned an invalid payload')
+  }
+
+  if (couponCode) {
+    try {
+      const { data: cData } = await supabase
+        .from('coupons')
+        .select('id, usage_count')
+        .ilike('code', couponCode.trim())
+        .maybeSingle()
+      if (cData) {
+        await supabase
+          .from('coupons')
+          .update({ usage_count: Number(cData.usage_count || 0) + 1 })
+          .eq('id', cData.id)
+      }
+    } catch { /* ignore coupon increment error */ }
   }
 
   return {

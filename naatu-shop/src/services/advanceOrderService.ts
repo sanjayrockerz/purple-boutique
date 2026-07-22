@@ -284,9 +284,8 @@ export async function completeAdvanceOrder(orderId: string, paymentMethod: Advan
   const now = new Date().toISOString()
 
   if (!result) {
-    const ymd = `${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}`
-    const seq = String(Math.floor(100000 + Math.random() * 900000))
-    const invoiceNo = `PB-${ymd}-${seq}`
+    const seq = String(Math.floor(10000000 + Math.random() * 89999999))
+    const invoiceNo = seq
     const completedOrderId = crypto.randomUUID ? crypto.randomUUID() : `ord_${Date.now()}_${Math.random().toString(36).slice(2)}`
     result = { order_id: completedOrderId, invoice_no: invoiceNo, completed_at: now }
   }

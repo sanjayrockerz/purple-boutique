@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf'
 import html2canvas from 'html2canvas'
 import { BRAND_ADDRESS, BRAND_EN, BRAND_PHONE_DISPLAY } from './brand'
-import { formatCurrency, formatQuantityDisplay, normalizeStructuredOrderItem } from './retail'
+import { formatCurrency, formatQuantityDisplay, normalizeStructuredOrderItem, formatInvoiceNo } from './retail'
 
 export type InvoicePdfData = {
   invoiceNo: string
@@ -24,6 +24,7 @@ const money = (value: number) => formatCurrency(Number(value || 0)).replace(/\s+
 
 /** Creates a compact A4 invoice that can be attached as a file to WhatsApp. */
 export function createInvoicePdf(data: InvoicePdfData): Blob {
+  const formattedNo = formatInvoiceNo(data.invoiceNo)
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   const pageWidth = 210
   const left = 16
@@ -37,7 +38,7 @@ export function createInvoicePdf(data: InvoicePdfData): Blob {
   doc.setFontSize(8)
   doc.setTextColor(muted)
   doc.text('TAX INVOICE', left, y)
-  doc.text(`Invoice: ${data.invoiceNo}`, right, y, { align: 'right' })
+  doc.text(`Invoice: #${formattedNo}`, right, y, { align: 'right' })
   y += 7
   doc.setDrawColor('#d8dce0')
   doc.line(left, y, right, y)
@@ -123,7 +124,7 @@ export function createInvoicePdf(data: InvoicePdfData): Blob {
   const rows: Array<[string, string, string]> = [['Subtotal', money(data.subtotal), ink]]
   if ((data.discountAmount || 0) > 0) rows.push([`Coupon${data.couponCode ? ` (${data.couponCode})` : ''}`, `-${money(data.discountAmount || 0)}`, '#198754'])
   if ((data.manualDiscountAmount || 0) > 0) rows.push(['Discount', `-${money(data.manualDiscountAmount || 0)}`, '#198754'])
-  if ((data.gstAmount || 0) > 0) rows.push(['GST', money(data.gstAmount || 0), ink])
+  if ((data.gstAmount || 0) > 0) rows.push(['SST', money(data.gstAmount || 0), ink])
   rows.push(['Delivery', (data.shipping || 0) > 0 ? money(data.shipping) : 'FREE', ink])
   doc.setFontSize(9)
   rows.forEach(([label, value, color]) => { doc.setFont('helvetica', 'normal'); doc.setTextColor(color); doc.text(label, 143, y, { align: 'right' }); doc.text(value, right - 4, y, { align: 'right' }); y += 7 })
@@ -148,7 +149,7 @@ export function createInvoicePdf(data: InvoicePdfData): Blob {
 }
 
 export function invoicePdfFile(data: InvoicePdfData): File {
-  return new File([createInvoicePdf(data)], `Invoice-${data.invoiceNo}.pdf`, { type: 'application/pdf' })
+  return new File([createInvoicePdf(data)], `Invoice-${formatInvoiceNo(data.invoiceNo)}.pdf`, { type: 'application/pdf' })
 }
 
 /** Captures the rendered invoice so the downloaded PDF matches the visible view. */
@@ -156,6 +157,7 @@ export async function invoicePdfFileFromElement(
   element: HTMLElement,
   invoiceNo: string,
 ): Promise<File> {
+  const formattedNo = formatInvoiceNo(invoiceNo)
   await document.fonts?.ready
   const canvas = await html2canvas(element, {
     backgroundColor: '#ffffff',
@@ -172,14 +174,18 @@ export async function invoicePdfFileFromElement(
   const imageHeight = (canvas.height * pageWidth) / canvas.width
   const image = canvas.toDataURL('image/png')
 
-  let offset = 0
-  let page = 0
-  while (offset < imageHeight) {
-    if (page > 0) doc.addPage()
-    doc.addImage(image, 'PNG', 0, -offset, pageWidth, imageHeight, undefined, 'FAST')
-    offset += pageHeight
-    page += 1
+  if (imageHeight <= pageHeight + 10) {
+    doc.addImage(image, 'PNG', 0, 0, pageWidth, Math.min(pageHeight, imageHeight), undefined, 'FAST')
+  } else {
+    let offset = 0
+    let page = 0
+    while (offset < imageHeight) {
+      if (page > 0) doc.addPage()
+      doc.addImage(image, 'PNG', 0, -offset, pageWidth, imageHeight, undefined, 'FAST')
+      offset += pageHeight
+      page += 1
+    }
   }
 
-  return new File([doc.output('blob')], `Invoice-${invoiceNo}.pdf`, { type: 'application/pdf' })
+  return new File([doc.output('blob')], `Invoice-${formattedNo}.pdf`, { type: 'application/pdf' })
 }

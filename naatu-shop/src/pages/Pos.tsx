@@ -17,6 +17,7 @@ import {
   calculateLineTotal,
   formatCurrency,
   formatQuantityDisplay,
+  formatInvoiceNo,
 } from '../lib/retail'
 import { buildProfessionalWhatsAppMessage, publicInvoiceUrl } from '../lib/whatsappMessage'
 import { getProductImage, onImgError } from '../lib/productImages'
@@ -249,7 +250,7 @@ export default function Pos(props: PosProps = {}) {
     const name = manualName.trim()
     const price = Number(manualPrice || 0)
     if (!name) { setError('Enter product name'); return }
-    if (!(price > 0)) { setError('Enter valid price'); return }
+    if (price < 0) { setError('Enter valid price'); return }
     const prod: Product = {
       id: `manual-${Date.now()}`,
       name,
@@ -1095,9 +1096,9 @@ export default function Pos(props: PosProps = {}) {
                 </div>
               </div>
 
-              {/* GST Toggle */}
+              {/* SST Toggle */}
               <div className="flex items-center justify-between py-2 border-b border-borderLight">
-                <span className="text-[12px] font-black text-textMuted">Enable GST on Bill</span>
+                <span className="text-[12px] font-black text-textMuted">Enable SST on Bill</span>
                 <button 
                   type="button"
                   onClick={() => setBillGstEnabled(!billGstEnabled)}

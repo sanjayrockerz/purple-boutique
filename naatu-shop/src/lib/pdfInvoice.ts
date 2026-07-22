@@ -69,7 +69,7 @@ export function generatePDFInvoice(input: PDFInvoiceInput): Blob {
   totalRow('Subtotal', money(input.subtotal))
   if ((input.couponDiscount || 0) > 0) totalRow('Coupon Discount', `-${money(input.couponDiscount || 0)}`, '#15803d')
   if ((input.manualDiscountAmount || 0) > 0) totalRow('Manual Discount', `-${money(input.manualDiscountAmount || 0)}`, '#15803d')
-  if ((input.gstAmount || 0) > 0) totalRow('GST', money(input.gstAmount || 0))
+  if ((input.gstAmount || 0) > 0) totalRow('SST', money(input.gstAmount || 0))
   if ((input.shipping || 0) > 0) totalRow('Delivery Charges', money(input.shipping || 0))
   y += 2; line(y, PURPLE, 0.8); y += 9; totalRow('TOTAL AMOUNT', money(input.total), PURPLE_DARK, true); y += 3; text(`Payment Mode: ${input.paymentMode || 'POS'}`, labelX, y, 8.5, MUTED)
 

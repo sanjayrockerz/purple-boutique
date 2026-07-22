@@ -84,7 +84,6 @@ export default function CatalogModal({ isOpen, onClose, onAdd }: CatalogModalPro
     e.preventDefault()
     if (!editingProduct) return
     if (!editForm.name.trim()) { setEditError('Name is required'); return }
-    if (!editForm.price) { setEditError('Price is required'); return }
     setEditLoading(true)
     setEditError('')
     const selectedCategory = allCategoryOptions.find(c => c.name_en.trim().toLowerCase() === editForm.category.trim().toLowerCase())

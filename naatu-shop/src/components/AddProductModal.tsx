@@ -55,7 +55,6 @@ export default function AddProductModal({ isOpen, onClose, onSuccess }: AddProdu
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.name.trim()) return setError('Name is required')
-    if (!formData.price) return setError('Price is required')
     if (!formData.category.trim()) return setError('Category is required')
 
     setLoading(true)

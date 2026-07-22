@@ -1,3 +1,5 @@
+import { formatInvoiceNo } from './retail'
+
 export type WhatsAppLineItem = {
   name: string
   qty: number
@@ -35,11 +37,12 @@ export type AdvanceDepositWhatsAppInput = {
 }
 
 export const publicInvoiceUrl = (invoiceNumber: string) => {
+  const formatted = formatInvoiceNo(invoiceNumber)
   const origin =
     typeof window !== 'undefined' && window.location?.origin && !window.location.origin.includes('localhost')
       ? window.location.origin
       : 'https://purple-boutique.vercel.app'
-  return `${origin}/invoice/${encodeURIComponent(invoiceNumber)}`
+  return `${origin}/invoice/${encodeURIComponent(formatted)}`
 }
 
 export const buildProfessionalWhatsAppMessage = (input: BuildWhatsAppMessageInput) => {

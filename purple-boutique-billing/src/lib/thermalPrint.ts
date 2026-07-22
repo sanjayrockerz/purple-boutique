@@ -1,5 +1,5 @@
 import { BRAND_ADDRESS, BRAND_EN, BRAND_LOGO, BRAND_WHATSAPP } from './brand'
-import { formatCurrency } from './retail'
+import { formatCurrency, formatInvoiceNo } from './retail'
 
 export interface ThermalReceiptData {
   invoiceNo: string
@@ -85,7 +85,7 @@ export function printThermalReceipt(data: ThermalReceiptData) {
         </div>
 
         <div class="border-bottom border-top" style="font-size: 11px;">
-          <div>Inv: ${data.invoiceNo}</div>
+          <div>Inv: #${formatInvoiceNo(data.invoiceNo)}</div>
           <div>Date: ${dateStr}</div>
           ${data.customerName ? `<div>Name: ${data.customerName}</div>` : ''}
           ${data.phone ? `<div>Tel: ${data.phone}</div>` : ''}
@@ -139,7 +139,7 @@ export function printThermalReceipt(data: ThermalReceiptData) {
             ` : ''}
             ${(data.totalGst || 0) > 0 ? `
               <tr>
-                <td class="text-left">GST</td>
+                <td class="text-left">SST</td>
                 <td class="text-right">+${formatCurrency(data.totalGst || 0)}</td>
               </tr>
             ` : ''}

@@ -74,6 +74,27 @@ export const safeId = (id: unknown): number | null => {
 export const isUuid = (value: unknown): value is string =>
   typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 
+export const formatInvoiceNo = (invNo: unknown): string => {
+  const raw = String(invNo || '').trim()
+  if (!raw) return '10000001'
+  if (/^\d{8}$/.test(raw)) return raw
+
+  const matchDigits = raw.match(/\d+/g)
+  if (matchDigits) {
+    const joined = matchDigits.join('')
+    if (joined.length >= 8) return joined.slice(-8)
+    return joined.padStart(8, '0')
+  }
+
+  let hash = 0
+  for (let i = 0; i < raw.length; i++) {
+    hash = (hash << 5) - hash + raw.charCodeAt(i)
+    hash |= 0
+  }
+  return String(Math.abs(hash) % 89999999 + 10000000)
+}
+
+
 
 export const normalizeUnitType = (value: unknown, fallback: UnitType = 'unit'): UnitType => {
   const raw = String(value || '').trim().toLowerCase()

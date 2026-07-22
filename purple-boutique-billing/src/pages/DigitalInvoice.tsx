@@ -6,7 +6,7 @@ import { Printer, ArrowLeft, MessageCircle } from 'lucide-react'
 import { printThermalReceipt } from '../lib/thermalPrint'
 import { invoicePdfFile, invoicePdfFileFromElement } from '../lib/invoicePdf'
 import { uploadInvoicePdf } from '../lib/storage'
-import { isUuid, normalizeStructuredOrderItem } from '../lib/retail'
+import { isUuid, normalizeStructuredOrderItem, formatInvoiceNo } from '../lib/retail'
 import { buildProfessionalWhatsAppMessage } from '../lib/whatsappMessage'
 import { toWhatsAppUrl } from '../lib/phone'
 
@@ -27,22 +27,41 @@ export default function DigitalInvoice() {
       }
       try {
         const identifier = decodeURIComponent(id || '').trim()
+        const formattedIdentifier = formatInvoiceNo(identifier)
 
         // Try RPC lookup by invoice number first
-        const { data: rpcData, error: rpcError } = await supabase.rpc('get_public_invoice_by_number', {
+        let { data: rpcData, error: rpcError } = await supabase.rpc('get_public_invoice_by_number', {
           p_invoice_no: identifier,
         })
+        if ((!rpcData || (Array.isArray(rpcData) && rpcData.length === 0)) && formattedIdentifier) {
+          const fallbackRpc = await supabase.rpc('get_public_invoice_by_number', {
+            p_invoice_no: formattedIdentifier,
+          })
+          if (fallbackRpc.data) {
+            rpcData = fallbackRpc.data
+            rpcError = fallbackRpc.error
+          }
+        }
 
         let row = Array.isArray(rpcData) ? rpcData[0] : rpcData
 
         // Keep existing links working when the public-invoice RPC has not yet
         // been applied to the target project.
         if (!row || rpcError) {
-          const { data: invoiceData } = await supabase
+          let { data: invoiceData } = await supabase
             .from('orders')
             .select('*')
             .eq('invoice_no', identifier)
             .maybeSingle()
+
+          if (!invoiceData && formattedIdentifier) {
+            const { data: fmtData } = await supabase
+              .from('orders')
+              .select('*')
+              .eq('invoice_no', formattedIdentifier)
+              .maybeSingle()
+            invoiceData = fmtData
+          }
 
           row = invoiceData
 

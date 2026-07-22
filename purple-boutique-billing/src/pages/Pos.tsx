@@ -22,6 +22,7 @@ import {
   calculateLineTotal,
   formatCurrency,
   formatQuantityDisplay,
+  formatInvoiceNo,
 } from '../lib/retail'
 import { buildProfessionalWhatsAppMessage } from '../lib/whatsappMessage'
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -272,7 +273,7 @@ export default function Pos(props: PosProps = {}) {
     const name = manualName.trim()
     const price = Number(manualPrice || 0)
     if (!name) { setError(l('Enter product name', 'பொருள் பெயர் உள்ளிடவும்')); return }
-    if (!(price > 0)) { setError(l('Enter valid price', 'சரியான விலை உள்ளிடவும்')); return }
+    if (price < 0) { setError(l('Enter valid price', 'சரியான விலை உள்ளிடவும்')); return }
     const prod: Product = {
       id: `manual-${Date.now()}`,
       name,
@@ -637,7 +638,7 @@ export default function Pos(props: PosProps = {}) {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold text-textMain">{l('Bill Generated', 'பில் உருவாக்கப்பட்டது')}</h1>
-              <p className="text-sm text-textMuted">{invoice.invoiceNo}</p>
+              <p className="text-sm text-textMuted">#{formatInvoiceNo(invoice.invoiceNo)}</p>
             </div>
             <button onClick={clearAll}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#111111] hover:bg-[#3d4f3a] text-white font-bold text-sm">
@@ -858,13 +859,11 @@ export default function Pos(props: PosProps = {}) {
                     className="h-10 rounded-lg border border-[#D1FAE5]/70 bg-white px-3 text-[12px] font-bold text-[#111111] outline-none focus:border-[#047857]"
                   />
                   <input
-                    required
-                    min="0.01"
                     step="0.01"
                     type="number"
                     value={manualPrice}
                     onChange={e => setManualPrice(e.target.value)}
-                    placeholder="Price (RM)"
+                    placeholder="Price (RM, optional)"
                     className="h-10 rounded-lg border border-[#D1FAE5]/70 bg-white px-3 text-[12px] font-bold text-[#111111] outline-none focus:border-[#047857]"
                   />
                   <button
@@ -1158,9 +1157,9 @@ export default function Pos(props: PosProps = {}) {
                 </div>
               </div>
 
-              {/* GST Toggle */}
+              {/* SST Toggle */}
               <div className="flex items-center justify-between py-1 border-b border-[#D1FAE5]/40">
-                <span className="text-[11px] font-black text-[#374151]">Enable GST on Bill</span>
+                <span className="text-[11px] font-black text-[#374151]">Enable SST on Bill</span>
                 <button
                   type="button"
                   onClick={() => setBillGstEnabled(!billGstEnabled)}
@@ -1187,7 +1186,7 @@ export default function Pos(props: PosProps = {}) {
                     type="number"
                     value={gstInput}
                     onChange={e => setGstInput(e.target.value)}
-                    placeholder={gstType === 'percent' ? "e.g. 18" : "0"}
+                    placeholder={gstType === 'percent' ? "e.g. 6" : "0"}
                     className="w-full h-9 px-3 bg-white border border-[#D1FAE5]/60 rounded-xl text-[12px] font-black text-[#111111] text-right focus:outline-none focus:border-[#047857]"
                   />
                 </div>
@@ -1202,7 +1201,7 @@ export default function Pos(props: PosProps = {}) {
 
                 {billGstEnabled && totalGst > 0 && (
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black text-[#374151]">GST Amount</span>
+                    <span className="text-[11px] font-black text-[#374151]">SST Amount</span>
                     <span className="text-[12px] font-black text-[#111111]">{formatCurrency(totalGst)}</span>
                   </div>
                 )}

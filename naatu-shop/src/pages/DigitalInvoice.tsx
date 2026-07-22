@@ -5,7 +5,7 @@ import { Invoice } from '../components/Invoice'
 import { Printer, ArrowLeft, MessageCircle } from 'lucide-react'
 import { printThermalReceipt } from '../lib/thermalPrint'
 import { invoicePdfFile } from '../lib/invoicePdf'
-import { normalizeStructuredOrderItem } from '../lib/retail'
+import { normalizeStructuredOrderItem, formatInvoiceNo } from '../lib/retail'
 import { buildProfessionalWhatsAppMessage, publicInvoiceUrl } from '../lib/whatsappMessage'
 import { toWhatsAppUrl } from '../lib/phone'
 
@@ -24,13 +24,24 @@ export default function DigitalInvoice() {
         return
       }
       try {
-        const { data, error } = await supabase
+        const identifier = decodeURIComponent(id || '').trim()
+        const formattedIdentifier = formatInvoiceNo(identifier)
+
+        let { data } = await supabase
           .from('orders')
           .select('*')
-          .eq('invoice_no', id)
-          .single()
+          .eq('invoice_no', identifier)
+          .maybeSingle()
 
-        if (error) throw error
+        if (!data && formattedIdentifier) {
+          const { data: fmtData } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('invoice_no', formattedIdentifier)
+            .maybeSingle()
+          data = fmtData
+        }
+
         if (!data) throw new Error('Invoice not found')
 
         setInvoice(data)

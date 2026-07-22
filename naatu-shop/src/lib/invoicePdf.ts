@@ -1,5 +1,5 @@
 import { generatePDFInvoice } from './pdfInvoice'
-import { normalizeStructuredOrderItem } from './retail'
+import { normalizeStructuredOrderItem, formatInvoiceNo } from './retail'
 
 export type InvoicePdfData = {
   invoiceNo: string
@@ -19,12 +19,13 @@ export type InvoicePdfData = {
 }
 
 export function invoicePdfFile(data: InvoicePdfData): File {
+  const formattedNo = formatInvoiceNo(data.invoiceNo)
   const items = data.items.map(raw => {
     const item = normalizeStructuredOrderItem(raw)
     return { name: item.name, qty: item.quantity, rate: item.base_price, lineTotal: item.line_total }
   })
   const blob = generatePDFInvoice({
-    invoiceNo: data.invoiceNo,
+    invoiceNo: formattedNo,
     date: data.date,
     customerName: data.customerName,
     phone: data.phone,
@@ -38,5 +39,5 @@ export function invoicePdfFile(data: InvoicePdfData): File {
     total: data.total,
     paymentMode: data.paymentMode,
   })
-  return new File([blob], `Invoice-${data.invoiceNo}.pdf`, { type: 'application/pdf' })
+  return new File([blob], `Invoice-${formattedNo}.pdf`, { type: 'application/pdf' })
 }

@@ -33,7 +33,9 @@ export async function validateCoupon(
       return { data: null, error: 'This coupon has expired' }
     }
 
-    if (data.usage_limit && data.usage_count >= data.usage_limit) {
+    const usageLimit = Number(data.usage_limit || 0)
+    const usageCount = Number(data.usage_count || 0)
+    if (usageLimit > 0 && usageCount >= usageLimit) {
       return { data: null, error: 'Coupon usage limit has been reached' }
     }
 

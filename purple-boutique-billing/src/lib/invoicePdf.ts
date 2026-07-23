@@ -46,20 +46,24 @@ export function createInvoicePdf(data: InvoicePdfData): Blob {
   y += 10
 
   try {
-    doc.addImage(LOGO_BASE64, 'JPEG', left, y, 48, 16)
+    doc.addImage(LOGO_BASE64, 'JPEG', left, y, 20, 20)
   } catch {
     doc.setTextColor(red)
-    doc.setFontSize(18)
+    doc.setFontSize(16)
     doc.text(BRAND_EN, left, y + 10)
   }
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(13)
+  doc.setTextColor(red)
+  doc.text(BRAND_EN, left + 24, y + 5)
   doc.setFontSize(8)
   doc.setTextColor(muted)
   doc.setFont('helvetica', 'normal')
-  doc.text(BRAND_ADDRESS, left, y + 18, { maxWidth: 105 })
-  doc.text(`Phone: ${BRAND_PHONE_DISPLAY}`, left, y + 23)
+  doc.text(BRAND_ADDRESS, left + 24, y + 10, { maxWidth: 85 })
+  doc.text(`Phone: ${BRAND_PHONE_DISPLAY}`, left + 24, y + 18)
   doc.text(`Date: ${new Date(data.date).toLocaleDateString('en-IN')}`, right, y + 2, { align: 'right' })
   doc.text(`Payment: ${data.paymentMode || 'POS'}`, right, y + 7, { align: 'right' })
-  y += 31
+  y += 28
 
   const customerName = String(data.customerName || 'Walk-in Customer').trim()
   const customerPhone = String(data.phone || '—').trim()

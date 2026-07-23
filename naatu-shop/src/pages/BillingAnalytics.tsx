@@ -574,7 +574,7 @@ export default function BillingAnalytics() {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div className="admin-logo-lockup min-w-[280px]">
             <div className="admin-logo-mark shrink-0 rounded-[22px] border border-[#EAD7B7] bg-white p-2 shadow-[0_10px_28px_rgba(17,24,39,0.10)]">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#FCFBF7] ring-1 ring-[#F2E7D2] overflow-hidden">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white border border-purple-200 p-1 shadow-sm overflow-hidden shrink-0">
                 <img src={BRAND_LOGO} alt="Purple Boutique Logo" className="h-full w-full object-contain" />
               </div>
             </div>

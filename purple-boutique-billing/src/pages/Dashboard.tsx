@@ -1275,30 +1275,32 @@ export default function Dashboard() {
         ].join(' ')}
       >
         {/* Desktop brand header */}
-        <div className={`hidden lg:flex items-center relative transition-all duration-300 ${sidebarCollapsed ? 'justify-center pt-6 pb-5 px-2' : 'px-5 py-5'}`}>
-          <div className={`flex items-center gap-3 min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'opacity-100 flex-1'}`}>
-            <div className="flex items-center justify-center shrink-0 w-11 h-11 rounded-xl bg-[#090d0a] border border-emerald-900/40 shadow-sm overflow-hidden p-0.5">
+        <div className={`hidden lg:flex items-center relative transition-all duration-300 ${sidebarCollapsed ? 'flex-col items-center pt-5 pb-4 px-2 gap-3' : 'px-5 py-5 justify-between'}`}>
+          <div className={`flex items-center gap-3 min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'justify-center' : 'flex-1'}`}>
+            <div className="flex items-center justify-center shrink-0 w-11 h-11 rounded-xl bg-white border border-emerald-900/40 shadow-sm overflow-hidden p-1">
               <img src="/purple-boutique-logo.jpeg" alt="Purple Boutique logo" className="w-full h-full object-contain" />
             </div>
-            <h1 className="text-[20px] font-black text-white truncate tracking-tight">Purple Boutique</h1>
+            {!sidebarCollapsed && (
+              <h1 className="text-[20px] font-black text-white truncate tracking-tight">Purple Boutique</h1>
+            )}
           </div>
           <button
             type="button"
             onClick={() => setSidebarCollapsed((state) => !state)}
-            className={`flex h-8 w-8 items-center justify-center rounded-xl bg-white/10 text-white/80 hover:bg-white/15 hover:text-white transition-colors shrink-0 ${sidebarCollapsed ? '' : ''}`}
-            aria-label="Collapse sidebar"
-            title="Collapse sidebar"
+            className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/10 text-white/80 hover:bg-white/15 hover:text-white transition-colors shrink-0"
+            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             <ChevronDown size={16} className={`transition-transform duration-300 ${sidebarCollapsed ? '-rotate-90' : 'rotate-90'}`} />
           </button>
         </div>
         {/* Mobile mini-header */}
         <div className="flex lg:hidden items-center justify-between px-4 py-4 border-b border-white/10">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#090d0a] border border-emerald-900/40 shrink-0 overflow-hidden shadow-sm p-0.5">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white border border-emerald-900/40 shrink-0 overflow-hidden shadow-sm p-1">
               <img src="/purple-boutique-logo.jpeg" alt="Purple Boutique logo" className="w-full h-full object-contain" />
             </div>
-            <span className="text-[15px] font-black text-white truncate">Purple Boutique</span>
+            <span className="text-[16px] font-black text-white truncate">Purple Boutique</span>
           </div>
         </div>
         {/* Nav */}
@@ -1902,28 +1904,30 @@ export default function Dashboard() {
                 ))}
               </div>
 
-              {/* Date filter */}
-              <div className="flex flex-col gap-3 md:items-end">
-                <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-[#F8F8F8] p-2">
-                  <span className="text-[10px] font-bold uppercase text-[#6B7280] ml-1 mr-1">Period:</span>
-                  {(['all', 'today', 'week', 'month', 'year'] as const).map(preset => (
-                    <button key={preset} type="button" onClick={() => applyAnalyticsPreset(preset)}
-                      className={`px-4 py-1.5 rounded-full text-[11px] font-bold uppercase transition-all ${analyticsDatePreset === preset ? 'bg-maroon-dark text-white shadow-sm' : 'text-[#6B7280] hover:text-[#111111]'}`}>
-                      {preset === 'all' ? 'All Time' : preset === 'today' ? 'Today' : preset === 'week' ? 'This Week' : preset === 'month' ? 'This Month' : 'This Year'}
-                    </button>
-                  ))}
-                </div>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 w-full">
-                  <div className="flex items-center border border-[#E7E7E7] rounded-xl px-3 py-2 bg-white min-w-0">
-                    <span className="text-[10px] uppercase font-bold text-[#6B7280] mr-2">From:</span>
-                    <input type="date" value={analyticsDateFrom} onChange={e => { setAnalyticsDateFrom(e.target.value); setAnalyticsDatePreset('custom'); }} className="w-full min-w-0 text-[12px] font-semibold text-[#111111] bg-transparent outline-none" />
+              {/* Date filter (hidden for Today's Sales) */}
+              {posAnalyticsTab !== 'today' && (
+                <div className="flex flex-col gap-3 md:items-end">
+                  <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-[#F8F8F8] p-2">
+                    <span className="text-[10px] font-bold uppercase text-[#6B7280] ml-1 mr-1">Period:</span>
+                    {(['all', 'today', 'week', 'month', 'year'] as const).map(preset => (
+                      <button key={preset} type="button" onClick={() => applyAnalyticsPreset(preset)}
+                        className={`px-4 py-1.5 rounded-full text-[11px] font-bold uppercase transition-all ${analyticsDatePreset === preset ? 'bg-maroon-dark text-white shadow-sm' : 'text-[#6B7280] hover:text-[#111111]'}`}>
+                        {preset === 'all' ? 'All Time' : preset === 'today' ? 'Today' : preset === 'week' ? 'This Week' : preset === 'month' ? 'This Month' : 'This Year'}
+                      </button>
+                    ))}
                   </div>
-                  <div className="flex items-center border border-[#E7E7E7] rounded-xl px-3 py-2 bg-white min-w-0">
-                    <span className="text-[10px] uppercase font-bold text-[#6B7280] mr-2">To:</span>
-                    <input type="date" value={analyticsDateTo} onChange={e => { setAnalyticsDateTo(e.target.value); setAnalyticsDatePreset('custom'); }} className="w-full min-w-0 text-[12px] font-semibold text-[#111111] bg-transparent outline-none" />
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 w-full">
+                    <div className="flex items-center border border-[#E7E7E7] rounded-xl px-3 py-2 bg-white min-w-0">
+                      <span className="text-[10px] uppercase font-bold text-[#6B7280] mr-2">From:</span>
+                      <input type="date" value={analyticsDateFrom} onChange={e => { setAnalyticsDateFrom(e.target.value); setAnalyticsDatePreset('custom'); }} className="w-full min-w-0 text-[12px] font-semibold text-[#111111] bg-transparent outline-none" />
+                    </div>
+                    <div className="flex items-center border border-[#E7E7E7] rounded-xl px-3 py-2 bg-white min-w-0">
+                      <span className="text-[10px] uppercase font-bold text-[#6B7280] mr-2">To:</span>
+                      <input type="date" value={analyticsDateTo} onChange={e => { setAnalyticsDateTo(e.target.value); setAnalyticsDatePreset('custom'); }} className="w-full min-w-0 text-[12px] font-semibold text-[#111111] bg-transparent outline-none" />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Revenue sub-tab */}
@@ -1972,12 +1976,9 @@ export default function Dashboard() {
 
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                   <div className="xl:col-span-2 bg-white rounded-card border border-borderLight p-6 shadow-soft">
-                    <div className="flex items-center gap-3 mb-6">
+                    <div className="flex items-center justify-between gap-4 mb-4">
                       <h3 className="text-[16px] font-bold text-[#111111]">Revenue Trend {analytics.chartYear}</h3>
-                    </div>
-                    <div className="flex items-end gap-4 mb-4">
-                      <span className="text-[24px] font-bold text-[#111111]">{formatCurrency(analytics.totalCompletedRevenue)}</span>
-                      <span className="text-[12px] font-bold text-maroon-dark bg-red-50 px-2 py-1 rounded-md mb-1">Avg {formatCurrency(analytics.monthlyRevenue || 0)}/mo</span>
+                      <span className="text-[12px] font-bold text-maroon-dark bg-red-50 px-2.5 py-1 rounded-md">Avg {formatCurrency(analytics.monthlyRevenue || 0)}/mo</span>
                     </div>
                     <div className="h-48">
                       <ResponsiveContainer width="100%" height="100%">
@@ -2123,22 +2124,8 @@ export default function Dashboard() {
                 {/* Dynamic Trend Graph + Top products */}
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                   {(() => {
-                    let chartData: Array<{ hour: string; revenue: number }> = []
-                    let chartTitle = 'Hourly Sales Trend (Today)'
-
-                    if (analyticsDatePreset === 'week') {
-                      chartData = analytics.weeklySales.map(w => ({ hour: w.day, revenue: w.revenue }))
-                      chartTitle = 'Daily Sales Trend (This Week)'
-                    } else if (analyticsDatePreset === 'month') {
-                      chartData = analytics.monthDailySales.map(m => ({ hour: m.date, revenue: m.revenue }))
-                      chartTitle = 'Daily Sales Trend (This Month)'
-                    } else if (analyticsDatePreset === 'all' || analyticsDatePreset === 'year') {
-                      chartData = analytics.monthlyTrend.map(m => ({ hour: m.month, revenue: m.revenue }))
-                      chartTitle = 'Monthly Sales Trend (All Time)'
-                    } else {
-                      chartData = analytics.todayHourlyTrend.map(h => ({ hour: h.hour, revenue: h.revenue }))
-                      chartTitle = 'Hourly Sales Trend (Today)'
-                    }
+                    const chartData = analytics.todayHourlyTrend.map(h => ({ hour: h.hour, revenue: h.revenue }))
+                    const chartTitle = 'Hourly Sales Trend (Today)'
 
                     return (
                       <div className="xl:col-span-2 bg-white rounded-2xl border border-[#D1FAE5]/30 p-5 shadow-sm">

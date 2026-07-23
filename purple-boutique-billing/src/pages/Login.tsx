@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Leaf, Mail, ArrowLeft, CheckCircle, User, Phone as PhoneIcon } from 'lucide-react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
-import { BRAND_EN, BRAND_TA } from '../lib/brand'
+import { BRAND_EN, BRAND_TA, BRAND_LOGO } from '../lib/brand'
 import { isValidIndianPhone, getSubscriberDigits } from '../lib/phone'
 import { useLangStore } from '../store/langStore'
 
@@ -97,8 +97,8 @@ export default function Login() {
 
         {/* Brand */}
         <div className="flex flex-col items-center mb-6">
-          <div className="w-12 h-12 bg-sage/30 rounded-2xl flex items-center justify-center mb-3">
-            <Leaf size={24} className="text-sageDark" />
+          <div className="mb-3 flex h-16 w-36 items-center justify-center rounded-2xl bg-white border border-emerald-900/30 p-2 shadow-md overflow-hidden">
+            <img src={BRAND_LOGO} alt={`${BRAND_EN} logo`} className="h-full w-full object-contain" />
           </div>
           <h1 className="text-xl font-bold font-headline text-textMain text-center">{BRAND_EN}</h1>
           <p className="text-[12px] text-textMuted mt-0.5 text-center">{BRAND_TA}</p>

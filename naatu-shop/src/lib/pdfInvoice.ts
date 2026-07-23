@@ -33,11 +33,11 @@ export function generatePDFInvoice(input: PDFInvoiceInput): Blob {
   // Purple Boutique A4 invoice header, based on the supplied reference layout.
   doc.setFillColor(PURPLE); doc.rect(0, 0, pageW, 4, 'F')
   try {
-    doc.addImage(LOGO_BASE64, 'JPEG', margin, y, 48, 16)
+    doc.addImage(LOGO_BASE64, 'JPEG', margin, y, 20, 20)
   } catch {
     text(BRAND_EN.toUpperCase(), margin, y + 5, 18, PURPLE_DARK, true)
   }
-  text('OFFICIAL SALES INVOICE', margin, y + 20, 7.5, MUTED, true)
+  text('OFFICIAL SALES INVOICE', margin, y + 22, 7.5, MUTED, true)
   doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(INK)
   doc.text(doc.splitTextToSize(BRAND_ADDRESS, 64), pageW - margin, y + 4, { align: 'right', maxWidth: 64 })
   doc.setFontSize(7.5); doc.setTextColor(MUTED); doc.text(BRAND_EN, pageW - margin, y + 16, { align: 'right' })

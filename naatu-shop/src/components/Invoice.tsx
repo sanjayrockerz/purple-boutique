@@ -79,7 +79,7 @@ export const Invoice: React.FC<InvoiceProps> = ({
     >
       {/* ── HEADER ────────────────────────────────────────────────── */}
       <div style={{ textAlign: 'center', borderBottom: '1px solid #e5e7eb', paddingBottom: 20, marginBottom: 20 }}>
-        <div style={{ width: 220, maxWidth: '85%', height: 75, margin: '0 auto 12px auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 80, height: 80, margin: '0 auto 12px auto', background: '#ffffff', borderRadius: 16, border: '1px solid #d1fae5', padding: 6, boxShadow: '0 4px 12px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
           <img src={BRAND_LOGO} alt="Purple Boutique Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
         </div>
         <div style={{ fontSize: 22, fontWeight: 900, color: '#047857', letterSpacing: -0.5, textTransform: 'uppercase' }}>

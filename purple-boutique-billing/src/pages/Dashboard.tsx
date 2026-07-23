@@ -2100,73 +2100,42 @@ export default function Dashboard() {
             {/* Today's Sales sub-tab */}
             {posAnalyticsTab === 'today' && (
               <div className="space-y-6">
-                {/* Key metrics row */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {/* Key metrics box grid row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {[
-                    { label: "Today's Revenue", value: formatCurrency(analytics.todaySales), icon: <BadgeDollarSign size={18} />, from: 'from-emerald-500 to-teal-600' },
-                    { label: 'Orders', value: String(analytics.todayCompletedOrdersCount), icon: <ShoppingCart size={18} />, from: 'from-blue-500 to-indigo-600' },
-                    { label: 'Items Sold', value: String(Math.round(analytics.todayItemsSold)), icon: <Package size={18} />, from: 'from-violet-500 to-purple-600' },
-                    { label: 'Avg Order Value', value: formatCurrency(analytics.todayAvgOrderValue), icon: <Trophy size={18} />, from: 'from-amber-500 to-orange-600' },
+                    { label: "TODAY'S REVENUE", value: formatCurrency(analytics.todaySales), icon: <BadgeDollarSign size={20} className="text-emerald-700" />, bg: 'bg-emerald-50', border: 'border-emerald-100' },
+                    { label: "COMPLETED ORDERS", value: String(analytics.todayCompletedOrdersCount), icon: <ShoppingCart size={20} className="text-blue-700" />, bg: 'bg-blue-50', border: 'border-blue-100' },
+                    { label: "ITEMS SOLD", value: String(Math.round(analytics.todayItemsSold)), icon: <Package size={20} className="text-purple-700" />, bg: 'bg-purple-50', border: 'border-purple-100' },
+                    { label: "AVG ORDER VALUE", value: formatCurrency(analytics.todayAvgOrderValue), icon: <Trophy size={20} className="text-amber-700" />, bg: 'bg-amber-50', border: 'border-amber-100' },
                   ].map((card, i) => (
-                    <div key={i} className={`relative overflow-hidden rounded-2xl p-5 shadow-lg border border-white/20 bg-gradient-to-br ${card.from}`}>
-                      <div className="absolute inset-0 bg-gradient-to-tl from-white/30 via-white/10 to-transparent" />
-                      <div className="relative z-10">
-                        <div className="flex items-center justify-between mb-3">
-                          <p className="text-[10px] uppercase font-black text-white/80 tracking-wider">{card.label}</p>
-                          <div className="w-9 h-9 rounded-xl bg-white/25 backdrop-blur-sm flex items-center justify-center text-white shadow-sm">{card.icon}</div>
-                        </div>
-                        <p className="text-[22px] font-extrabold text-white drop-shadow-sm truncate">{card.value}</p>
+                    <div key={i} className="bg-white rounded-2xl border border-gray-200/80 p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[11px] font-extrabold uppercase tracking-wider text-gray-500 mb-1">{card.label}</p>
+                        <p className="text-[22px] sm:text-[24px] font-black text-[#111111] leading-tight truncate">{card.value}</p>
+                      </div>
+                      <div className={`w-11 h-11 rounded-2xl ${card.bg} border ${card.border} flex items-center justify-center shrink-0 shadow-xs`}>
+                        {card.icon}
                       </div>
                     </div>
                   ))}
                 </div>
 
-                {/* Dynamic Trend Graph + Top products */}
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                  {(() => {
-                    const chartData = analytics.todayHourlyTrend.map(h => ({ hour: h.hour, revenue: h.revenue }))
-                    const chartTitle = 'Hourly Sales Trend (Today)'
-
-                    return (
-                      <div className="xl:col-span-2 bg-white rounded-2xl border border-[#D1FAE5]/30 p-5 shadow-sm">
-                        <h3 className="text-[15px] font-bold text-[#111111] mb-4">{chartTitle}</h3>
-                        <div className="h-72">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={chartData}>
-                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-                              <XAxis dataKey="hour" tick={{ fill: '#6B7280', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} interval={0} angle={-45} textAnchor="end" height={50} />
-                              <YAxis hide />
-                              <Tooltip cursor={{ fill: '#F9FAFB' }} formatter={(value) => formatCurrency(toNumber(value as number | string, 0))} />
-                              <Bar dataKey="revenue" fill="url(#todayGrad)" radius={[4, 4, 0, 0]} barSize={20} />
-                              <defs>
-                                <linearGradient id="todayGrad" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="0%" stopColor="#10B981" />
-                                  <stop offset="100%" stopColor="#111111" />
-                                </linearGradient>
-                              </defs>
-                            </BarChart>
-                          </ResponsiveContainer>
+                {/* Top products today */}
+                <div className="bg-white rounded-2xl border border-[#D1FAE5]/30 p-5 shadow-sm">
+                  <h3 className="text-[15px] font-bold text-[#111111] mb-4">Top Products Today</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {analytics.todayTopProducts.map((p, i) => (
+                      <div key={i} className="flex items-center justify-between bg-[#F9FAFB] p-3 rounded-xl border border-gray-100">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[13px] font-bold text-[#111111] truncate">{p.name}</p>
+                          <p className="text-[11px] text-[#374151]">{Math.round(p.qty)} sold</p>
                         </div>
+                        <p className="text-[13px] font-black text-[#10B981] ml-2">{formatCurrency(p.revenue)}</p>
                       </div>
-                    )
-                  })()}
-
-                  <div className="bg-white rounded-2xl border border-[#D1FAE5]/30 p-5 shadow-sm">
-                    <h3 className="text-[15px] font-bold text-[#111111] mb-4">Top Products Today</h3>
-                    <div className="space-y-3">
-                      {analytics.todayTopProducts.map((p, i) => (
-                        <div key={i} className="flex items-center justify-between bg-[#F9FAFB] p-3 rounded-xl">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[13px] font-bold text-[#111111] truncate">{p.name}</p>
-                            <p className="text-[11px] text-[#374151]">{Math.round(p.qty)} sold</p>
-                          </div>
-                          <p className="text-[13px] font-black text-[#10B981] ml-2">{formatCurrency(p.revenue)}</p>
-                        </div>
-                      ))}
-                      {analytics.todayTopProducts.length === 0 && (
-                        <p className="text-center text-[13px] text-[#374151] py-6">No products sold yet today.</p>
-                      )}
-                    </div>
+                    ))}
+                    {analytics.todayTopProducts.length === 0 && (
+                      <p className="col-span-full text-center text-[13px] text-[#374151] py-6">No products sold yet today.</p>
+                    )}
                   </div>
                 </div>
 

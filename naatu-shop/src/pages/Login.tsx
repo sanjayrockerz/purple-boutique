@@ -34,8 +34,8 @@ export default function Login() {
     <div className="min-h-screen bg-bgMain flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-2xl border border-borderLight shadow-card overflow-hidden">
         <div className="bg-gradient-to-br from-primary to-primary-dark p-6 text-center">
-          <div className="w-20 h-16 bg-white border border-purple-200 p-1.5 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-md overflow-hidden">
-            <img src={BRAND_LOGO} alt={BRAND_EN} className="w-full h-full object-contain" />
+          <div className="inline-flex items-center justify-center rounded-2xl bg-white border border-purple-200 p-2 mx-auto mb-3 shadow-md">
+            <img src={BRAND_LOGO} alt={BRAND_EN} className="h-12 w-auto max-w-[150px] rounded-xl object-contain" />
           </div>
           <h1 className="text-xl font-black text-white">{BRAND_EN}</h1>
           <p className="text-white/70 text-[12px] font-medium mt-1">Admin Login</p>

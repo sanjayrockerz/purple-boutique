@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf'
 import { formatCurrency } from './retail'
 import { BRAND_EN, BRAND_ADDRESS } from './brand'
+import { LOGO_BASE64 } from './logoBase64'
 
 type PDFItem = { name: string; qty: number; rate: number; lineTotal: number }
 type PDFInvoiceInput = {
@@ -31,18 +32,20 @@ export function generatePDFInvoice(input: PDFInvoiceInput): Blob {
 
   // Purple Boutique A4 invoice header, based on the supplied reference layout.
   doc.setFillColor(PURPLE); doc.rect(0, 0, pageW, 4, 'F')
-  text(BRAND_EN.toUpperCase(), margin, y + 5, 18, PURPLE_DARK, true)
-  text('OFFICIAL SALES INVOICE', margin, y + 11, 7.5, MUTED, true)
+  try {
+    doc.addImage(LOGO_BASE64, 'JPEG', margin, y, 48, 16)
+  } catch {
+    text(BRAND_EN.toUpperCase(), margin, y + 5, 18, PURPLE_DARK, true)
+  }
+  text('OFFICIAL SALES INVOICE', margin, y + 20, 7.5, MUTED, true)
   doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(INK)
   doc.text(doc.splitTextToSize(BRAND_ADDRESS, 64), pageW - margin, y + 4, { align: 'right', maxWidth: 64 })
-  doc.setFontSize(7.5); doc.setTextColor(MUTED); doc.text(BRAND_EN, pageW - margin, y + 14, { align: 'right' })
-  y += 24; line(y, PURPLE, 0.8); y += 10
+  doc.setFontSize(7.5); doc.setTextColor(MUTED); doc.text(BRAND_EN, pageW - margin, y + 16, { align: 'right' })
+  y += 26; line(y, PURPLE, 0.8); y += 10
 
   text('INVOICE', margin, y, 16, PURPLE, true)
   text(`Invoice No: ${input.invoiceNo}`, margin, y + 6, 8.5, MUTED)
   doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(MUTED); doc.text('INVOICE DETAILS', pageW - margin, y, { align: 'right' })
-  doc.setFontSize(8.5); doc.setTextColor(INK); doc.text(`Date: ${safeDate(input.date)}`, pageW - margin, y + 6, { align: 'right' })
-  doc.setTextColor('#15803d'); doc.text('Status: PAID', pageW - margin, y + 12, { align: 'right' }); y += 24
 
   doc.setFillColor(PALE_PURPLE); doc.roundedRect(margin, y - 4, contentW, 28, 2, 2, 'F')
   text('BILL TO', margin + 6, y + 3, 7.5, PURPLE, true)

@@ -82,6 +82,32 @@ const invoiceItems = (Array.isArray(invoice.items) ? invoice.items : [])
     .map((item: Record<string, unknown>) => normalizeStructuredOrderItem(item))
   const subtotal = invoiceItems.reduce((sum: number, item: ReturnType<typeof normalizeStructuredOrderItem>) => sum + item.line_total, 0)
 
+  const [viewMode, setViewMode] = useState<'invoice' | 'pdf'>('invoice')
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (invoice && viewMode === 'pdf' && !pdfUrl) {
+      const file = invoicePdfFile({
+        invoiceNo: invoice.invoice_no,
+        date: invoice.created_at,
+        customerName: invoice.customer_name,
+        phone: invoice.phone,
+        address: invoice.address,
+        items: invoiceItems as unknown as Array<Record<string, unknown>>,
+        subtotal,
+        shipping: Number(invoice.delivery_charge || 0),
+        total: Number(invoice.total || 0),
+        discountAmount: Number(invoice.discount_amount || 0),
+        manualDiscountAmount: Number(invoice.manual_discount_amount || 0),
+        gstAmount: Number(invoice.total_gst || invoice.gst_amount || 0),
+        couponCode: invoice.coupon_code || undefined,
+        paymentMode: invoice.payment_mode || invoice.payment_method || undefined,
+      })
+      const url = URL.createObjectURL(file)
+      setPdfUrl(url)
+    }
+  }, [invoice, viewMode, pdfUrl, subtotal, invoiceItems])
+
   const downloadPdf = () => {
     const file = invoicePdfFile({
       invoiceNo: invoice.invoice_no,
@@ -158,49 +184,93 @@ const invoiceItems = (Array.isArray(invoice.items) ? invoice.items : [])
   }
 
   return (
-    <div className="min-h-screen bg-bgMain font-sans pb-12 print:bg-white print:pb-0">
+    <div className="min-h-screen bg-[#F8F7F4] font-sans pb-12 print:bg-white print:pb-0 overflow-y-auto">
       {/* Top action bar */}
-      <div className="bg-bgMain p-4 sticky top-0 z-50 print:hidden flex items-center justify-between max-w-4xl mx-auto">
-        <Link to="/" className="flex items-center gap-2 text-primary hover:text-primary-dark font-semibold text-sm transition-colors bg-white border border-borderLight px-4 py-2 rounded-full shadow-sm">
-          <ArrowLeft size={16} /> Back
-        </Link>
-<div className="flex items-center gap-2">
-          <button
-            onClick={downloadPdf}
-            className="flex items-center gap-2 bg-primary text-white px-5 py-2 rounded-full font-bold text-sm shadow-md hover:bg-primary-dark transition-colors"
-          >
-            <Printer size={16} /> PDF
-          </button>
-          <button
-            onClick={shareViaWhatsApp}
-            className="flex items-center gap-2 bg-green-500 text-white px-5 py-2 rounded-full font-bold text-sm shadow-md hover:bg-green-600 transition-colors"
-          >
-            <MessageCircle size={16} /> WhatsApp
-          </button>
+      <div className="bg-[#F8F7F4] p-3 sm:p-4 sticky top-0 z-50 print:hidden border-b border-borderLight shadow-xs">
+        <div className="max-w-3xl mx-auto flex flex-wrap items-center justify-between gap-2">
+          <Link to="/" className="flex items-center gap-1.5 text-primary hover:text-primary-dark font-bold text-xs sm:text-sm transition-colors bg-white border border-borderLight px-3 py-1.5 sm:px-4 sm:py-2 rounded-full shadow-xs">
+            <ArrowLeft size={16} /> Back
+          </Link>
+
+          {/* Mode Switcher */}
+          <div className="flex items-center bg-gray-200/70 p-1 rounded-full text-xs font-bold">
+            <button
+              onClick={() => setViewMode('invoice')}
+              className={`px-3 py-1 rounded-full transition-all ${viewMode === 'invoice' ? 'bg-white text-purple-900 shadow-xs font-black' : 'text-gray-600 hover:text-gray-900'}`}
+            >
+              📄 Mobile View
+            </button>
+            <button
+              onClick={() => setViewMode('pdf')}
+              className={`px-3 py-1 rounded-full transition-all ${viewMode === 'pdf' ? 'bg-white text-purple-900 shadow-xs font-black' : 'text-gray-600 hover:text-gray-900'}`}
+            >
+              📱 PDF View
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={downloadPdf}
+              className="flex items-center gap-1.5 bg-purple-700 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full font-bold text-xs sm:text-sm shadow-md hover:bg-purple-800 transition-colors"
+            >
+              <Printer size={15} /> PDF
+            </button>
+            <button
+              onClick={shareViaWhatsApp}
+              className="flex items-center gap-1.5 bg-emerald-600 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full font-bold text-xs sm:text-sm shadow-md hover:bg-emerald-700 transition-colors"
+            >
+              <MessageCircle size={15} /> WhatsApp
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto mt-4 print:mt-0 px-2 sm:px-0">
-        <div className="bg-white shadow-xl rounded-2xl overflow-hidden print:shadow-none print:rounded-none border border-borderLight print:border-none">
-          <Invoice
-            invoiceNo={invoice.invoice_no}
-            date={invoice.created_at}
-            customerName={invoice.customer_name}
-            phone={invoice.phone}
-            address={invoice.address}
-            items={invoice.items || []}
-            subtotal={subtotal}
-            shipping={invoice.delivery_charge || 0}
-            discountAmount={invoice.discount_amount || 0}
-            manualDiscountAmount={invoice.manual_discount_amount || 0}
-            gstAmount={invoice.total_gst || invoice.gst_amount || 0}
-            couponCode={invoice.coupon_code}
-            total={invoice.total}
-            status={invoice.status}
-            paymentMode={invoice.payment_mode || invoice.payment_method}
-            onPrintReceipt={printReceipt}
-          />
-        </div>
+      <div className="max-w-3xl mx-auto mt-3 sm:mt-6 print:mt-0 px-2 sm:px-4">
+        {viewMode === 'invoice' ? (
+          <div className="bg-white shadow-xl rounded-2xl print:shadow-none print:rounded-none border border-borderLight print:border-none overflow-x-auto">
+            <Invoice
+              invoiceNo={invoice.invoice_no}
+              date={invoice.created_at}
+              customerName={invoice.customer_name}
+              phone={invoice.phone}
+              address={invoice.address}
+              items={invoice.items || []}
+              subtotal={subtotal}
+              shipping={invoice.delivery_charge || 0}
+              discountAmount={invoice.discount_amount || 0}
+              manualDiscountAmount={invoice.manual_discount_amount || 0}
+              gstAmount={invoice.total_gst || invoice.gst_amount || 0}
+              couponCode={invoice.coupon_code}
+              total={invoice.total}
+              status={invoice.status}
+              paymentMode={invoice.payment_mode || invoice.payment_method}
+              onPrintReceipt={printReceipt}
+            />
+          </div>
+        ) : (
+          <div className="bg-white shadow-xl rounded-2xl p-4 border border-borderLight flex flex-col items-center">
+            <div className="w-full mb-3 flex items-center justify-between">
+              <span className="text-xs font-black text-purple-900 uppercase tracking-wider">A4 PDF Preview</span>
+              <button
+                onClick={downloadPdf}
+                className="text-xs font-black text-purple-700 underline hover:text-purple-900"
+              >
+                Download PDF File
+              </button>
+            </div>
+            {pdfUrl ? (
+              <iframe
+                src={pdfUrl}
+                title={`Invoice-${invoice.invoice_no}`}
+                className="w-full h-[70vh] rounded-xl border border-gray-200 shadow-inner"
+              />
+            ) : (
+              <div className="h-64 flex items-center justify-center text-gray-500 font-semibold text-sm">
+                Generating PDF Preview...
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

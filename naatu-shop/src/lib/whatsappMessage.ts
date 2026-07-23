@@ -48,29 +48,29 @@ export const publicInvoiceUrl = (invoiceNumber: string) => {
 export const buildProfessionalWhatsAppMessage = (input: BuildWhatsAppMessageInput) => {
   const customerName = input.customerName?.trim() || 'Valued Customer'
   const invoiceUrl = input.invoiceUrl || publicInvoiceUrl(input.invoiceNumber)
+  const formattedNo = formatInvoiceNo(input.invoiceNumber)
+  const itemsText = input.items && input.items.length > 0
+    ? input.items.map(item => `• ${item.name} (x${item.qty}) - RM ${Number(item.lineTotal || 0).toFixed(2)}`).join('\n')
+    : ''
 
-  return `💚 Thank You for Shopping with Purple Boutique! 💚
+  return `✨ *PURPLE BOUTIQUE* ✨
+💚 *Official Purchase Invoice & Receipt* 💚
 
 Dear ${customerName},
 
-✨ Thank you for choosing Purple Boutique. We truly appreciate your support.
+Thank you for shopping with Purple Boutique! We truly appreciate your order.
 
-🧾 Download Your Invoice & Receipt 👇
-📄 ${invoiceUrl}
+🧾 *INVOICE DETAILS*
+📌 *Invoice No:* #${formattedNo}
+${input.invoiceDate ? `📅 *Date:* ${new Date(input.invoiceDate).toLocaleDateString('en-GB')}\n` : ''}${input.paymentMode ? `💳 *Payment Mode:* ${input.paymentMode}\n` : ''}${input.total !== undefined ? `💰 *Total Amount:* RM ${Number(input.total || 0).toFixed(2)}\n` : ''}
+${itemsText ? `📦 *ITEMS ORDERED:*\n${itemsText}\n\n` : ''}📄 *View & Download Digital Invoice / PDF:*
+👉 ${invoiceUrl}
 
-.
-
-.
-
-📸 Follow us on Instagram for our latest collections, exclusive offers & updates:
+📸 *Follow us on Instagram for latest collections & updates:*
 https://www.instagram.com/purple_boutique05?igsh=N3NqaWljMTFvMmQ=r
 
-💬 We'd love your feedback! Your review helps us improve and means the world to us. 💚
-
-⭐ Leave your feedback here:
-https://forms.gle/JcTw9uVkH4K9YbcD8
-
-.
+💬 *We would love your feedback:*
+⭐ https://forms.gle/JcTw9uVkH4K9YbcD8
 
 💚 Thank you, and we hope to see you again soon!
 🙏 நன்றி! மீண்டும் சந்திப்போம்`

@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf'
 import html2canvas from 'html2canvas'
 import { BRAND_ADDRESS, BRAND_EN, BRAND_PHONE_DISPLAY } from './brand'
 import { formatCurrency, formatQuantityDisplay, normalizeStructuredOrderItem, formatInvoiceNo } from './retail'
+import { LOGO_BASE64 } from './logoBase64'
 
 export type InvoicePdfData = {
   invoiceNo: string
@@ -44,17 +45,21 @@ export function createInvoicePdf(data: InvoicePdfData): Blob {
   doc.line(left, y, right, y)
   y += 10
 
-  doc.setTextColor(red)
-  doc.setFontSize(18)
-  doc.text(BRAND_EN, left, y)
+  try {
+    doc.addImage(LOGO_BASE64, 'JPEG', left, y, 48, 16)
+  } catch {
+    doc.setTextColor(red)
+    doc.setFontSize(18)
+    doc.text(BRAND_EN, left, y + 10)
+  }
   doc.setFontSize(8)
   doc.setTextColor(muted)
   doc.setFont('helvetica', 'normal')
-  doc.text(BRAND_ADDRESS, left, y + 5, { maxWidth: 105 })
-  doc.text(`Phone: ${BRAND_PHONE_DISPLAY}`, left, y + 10)
+  doc.text(BRAND_ADDRESS, left, y + 18, { maxWidth: 105 })
+  doc.text(`Phone: ${BRAND_PHONE_DISPLAY}`, left, y + 23)
   doc.text(`Date: ${new Date(data.date).toLocaleDateString('en-IN')}`, right, y + 2, { align: 'right' })
   doc.text(`Payment: ${data.paymentMode || 'POS'}`, right, y + 7, { align: 'right' })
-  y += 23
+  y += 31
 
   const customerName = String(data.customerName || 'Walk-in Customer').trim()
   const customerPhone = String(data.phone || '—').trim()

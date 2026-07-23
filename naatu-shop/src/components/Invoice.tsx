@@ -72,15 +72,15 @@ export const Invoice: React.FC<InvoiceProps> = ({
   return (
     <div
       id="invoice-print-root"
-      className="w-full max-w-[680px] mx-auto bg-white text-[#1a1a2e] box-border flex flex-col p-4 sm:p-8 print:p-0 print:max-w-full"
+      className="w-full max-w-[680px] mx-auto bg-white text-[#1a1a2e] box-border flex flex-col p-3 sm:p-8 print:p-0 print:max-w-full overflow-hidden"
       style={{
         fontFamily: "'Inter', 'Segoe UI', sans-serif",
       }}
     >
       {/* ── HEADER ────────────────────────────────────────────────── */}
       <div style={{ textAlign: 'center', borderBottom: '1px solid #e5e7eb', paddingBottom: 20, marginBottom: 20 }}>
-        <div style={{ width: 76, height: 76, margin: '0 auto', marginBottom: 10, borderRadius: 14, background: '#090d0a', padding: 4, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.12)' }}>
-          <img src={BRAND_LOGO} alt="Purple Boutique Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        <div style={{ width: 220, maxWidth: '85%', height: 75, margin: '0 auto 12px auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <img src={BRAND_LOGO} alt="Purple Boutique Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
         </div>
         <div style={{ fontSize: 22, fontWeight: 900, color: '#047857', letterSpacing: -0.5, textTransform: 'uppercase' }}>
           {BRAND_EN}

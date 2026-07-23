@@ -58,10 +58,30 @@ export function getSubscriberDigits(input: string): string | null {
  * Builds a wa.me URL for the given Indian phone number.
  * Falls back to the store's WhatsApp link if the number is invalid.
  */
+export function normalizePhoneForWhatsApp(input: string): string {
+  if (!input) return ''
+  const digits = input.replace(/\D/g, '')
+  if (!digits) return ''
+
+  if (digits.length >= 11 && (digits.startsWith('60') || digits.startsWith('91'))) {
+    return digits
+  }
+  if (digits.startsWith('0') && (digits.length === 10 || digits.length === 11)) {
+    return '60' + digits.slice(1)
+  }
+  if (digits.length === 10 && /^[6-9]/.test(digits)) {
+    return '91' + digits
+  }
+  if (digits.length >= 9 && digits.length <= 10 && digits.startsWith('1')) {
+    return '60' + digits
+  }
+  return digits
+}
+
 export function toWhatsAppUrl(phone: string, text?: string): string {
-  const normalized = normalizeIndianPhone(phone)
+  const normalized = normalizePhoneForWhatsApp(phone) || normalizeIndianPhone(phone)
   const queryParams: string[] = []
-  
+
   if (normalized) {
     queryParams.push(`phone=${normalized}`)
   }

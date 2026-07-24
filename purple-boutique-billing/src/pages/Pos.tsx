@@ -5,7 +5,8 @@ import {
   Search, Trash2, Plus, Receipt, Printer,
   RefreshCw, ShoppingBag, MessageCircle,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  Wifi, WifiOff, Layers, X, ChevronDown, Power
+  Wifi, WifiOff, Layers, X, ChevronDown, Power,
+  Menu, User, List
 } from 'lucide-react'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
 import { useProductStore, useVariantStore, useAdminAuthStore, type Product } from '../store/store'
@@ -727,30 +728,43 @@ export default function Pos(props: PosProps = {}) {
   // ══ MAIN POS SCREEN ══════════════════════════════════════════════════
   return (
     <div data-embedded={embeddedMode} data-panel={mobilePanelView} className="flex flex-col h-full bg-[#FAFAFA] print:hidden overflow-y-auto overflow-x-hidden hide-scrollbar">
-      {/* Header */}
-      <div className="px-4 pt-4 pb-3 md:px-6 md:pt-6 md:pb-4 shrink-0 flex flex-col gap-4 min-[480px]:flex-row min-[480px]:items-start min-[480px]:justify-between">
-        <div className="min-w-0">
-          <h2 className="text-[28px] md:text-[22px] font-black text-[#047857] flex items-start gap-2 leading-tight">
-            <div className="w-1.5 h-6 bg-[#047857] rounded-full"></div>
-            POS Billing Panel
-          </h2>
-          <p className="text-[13px] md:text-[12px] text-gray-500 font-medium ml-3.5 mt-1 pr-2">Quick Invoice generator & database synced checkout</p>
+      {/* Top Navbar with Hamburger Icon & Brand Title */}
+      <div className="bg-white border-b border-gray-100 px-4 py-3 shrink-0 flex items-center justify-between shadow-xs">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            className="w-10 h-10 rounded-xl border border-gray-200 bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 transition-colors shadow-xs"
+            aria-label="Toggle navigation menu"
+          >
+            <Menu size={20} />
+          </button>
+          <h1 className="text-xl font-bold text-gray-900 tracking-tight">Aarika Looms</h1>
         </div>
 
-        {/* Online/Offline Toggle & Logout */}
-        <div className="flex gap-2 w-full min-[480px]:w-auto">
-          <div className="grid grid-cols-2 bg-white rounded-xl border border-[#D1FAE5]/60 p-1 shadow-sm flex-1 min-[480px]:flex-none">
+        {/* Online/Offline Toggle Pills Container */}
+        <div className="flex gap-2 items-center">
+          <div className="bg-gray-100/90 p-1 rounded-full border border-gray-200/80 flex items-center gap-1 shadow-inner">
             <button
               onClick={() => setOrderMode('offline')}
-              className={`min-h-[44px] px-4 py-2 rounded-lg text-[12px] md:text-[11px] font-black tracking-wider uppercase transition-colors ${orderMode === 'offline' ? 'bg-[#047857] text-white' : 'text-[#374151] hover:bg-[#F9FAFB]'}`}
+              className={`px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wide uppercase transition-all flex items-center gap-1.5 ${
+                orderMode === 'offline'
+                  ? 'bg-[#3b1219] text-[#fef08a] shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
             >
-              Offline
+              <span className="w-2 h-2 rounded-full bg-[#eab308]"></span>
+              OFFLINE (POS)
             </button>
             <button
               onClick={() => setOrderMode('online')}
-              className={`min-h-[44px] px-4 py-2 rounded-lg text-[12px] md:text-[11px] font-black tracking-wider uppercase transition-colors ${orderMode === 'online' ? 'bg-[#047857] text-white' : 'text-[#374151] hover:bg-[#F9FAFB]'}`}
+              className={`px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wide uppercase transition-all flex items-center gap-1.5 ${
+                orderMode === 'online'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
             >
-              Online
+              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+              ONLINE ORDER
             </button>
           </div>
           {!embeddedMode && (
@@ -758,7 +772,7 @@ export default function Pos(props: PosProps = {}) {
               {role === 'admin' && (
                 <button
                   onClick={() => navigate('/dashboard')}
-                  className="flex items-center justify-center min-h-[44px] px-4 rounded-xl bg-[#111111] text-white hover:bg-[#3d4f3a] transition-colors text-[12px] font-black tracking-wider uppercase"
+                  className="hidden sm:flex items-center justify-center h-9 px-3 rounded-xl bg-[#111111] text-white hover:bg-[#3d4f3a] transition-colors text-[11px] font-bold tracking-wider uppercase"
                 >
                   Dashboard
                 </button>
@@ -766,114 +780,157 @@ export default function Pos(props: PosProps = {}) {
               <button
                 onClick={() => { logout(); navigate('/admin-login', { replace: true }) }}
                 title="Logout"
-                className="flex items-center justify-center min-h-[44px] px-4 rounded-xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                className="flex items-center justify-center w-9 h-9 rounded-xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
               >
-                <Power size={18} />
+                <Power size={16} />
               </button>
             </>
           )}
         </div>
       </div>
 
+      {/* Main Panel Header Title */}
+      <div className="px-4 pt-4 pb-2 md:px-6 md:pt-5 shrink-0">
+        <div className="flex items-center gap-2.5 mb-1">
+          <div className="w-1.5 h-6 bg-[#b47128] rounded-full shrink-0"></div>
+          <h2 className="text-2xl md:text-xl font-black text-gray-900 tracking-tight">POS Billing Panel</h2>
+        </div>
+        <p className="text-xs text-gray-500 font-medium pl-4 pb-3 border-b border-gray-200/60">
+          Quick Invoice generator & database synced checkout
+        </p>
+      </div>
+
       {/* Main Content Split */}
-      <div className="flex flex-col lg:flex-row gap-5 md:gap-6 px-4 md:px-6 pb-6 lg:h-[calc(100vh-120px)] lg:overflow-hidden">
+      <div className="flex flex-col lg:flex-row gap-5 md:gap-6 px-4 md:px-6 py-4 lg:h-[calc(100vh-140px)] lg:overflow-hidden">
 
         {/* LEFT COLUMN (approx 68%) */}
-        <div className="flex-[2.1] flex flex-col gap-6 lg:overflow-y-auto lg:pb-4 hide-scrollbar">
+        <div className="flex-[2.1] flex flex-col gap-5 lg:overflow-y-auto lg:pb-4 hide-scrollbar">
 
           {/* Customer Details Card */}
-          <div className="bg-white rounded-2xl border border-[#D1FAE5]/40 shadow-sm p-4 md:p-5">
-            <h3 className="text-[18px] md:text-[14px] font-black text-[#111111] flex items-center gap-2 mb-4">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#047857]"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs p-4 sm:p-5 space-y-4">
+            <h3 className="text-base font-extrabold text-gray-900 flex items-center gap-2">
+              <User className="text-[#b47128]" size={18} />
               Customer Details
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[13px] md:text-[10px] font-black text-[#374151] tracking-wider uppercase mb-1.5">Customer Name</label>
+                <label className="block text-[10px] font-black text-gray-600 tracking-wider uppercase mb-1.5">
+                  CUSTOMER NAME
+                </label>
                 <input
                   type="text"
                   value={customer.name}
                   onChange={e => setCustomer({...customer, name: e.target.value})}
                   placeholder="Enter name"
-                  className="w-full h-12 px-4 bg-white border border-[#D1FAE5]/60 rounded-xl focus:outline-none focus:border-[#047857] text-[16px] md:text-[13px] font-bold text-[#111111] placeholder:text-gray-400 placeholder:font-medium"
+                  className="w-full h-11 px-4 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#b47128] focus:ring-1 focus:ring-[#b47128] text-sm font-semibold text-gray-900 placeholder:text-gray-400 placeholder:font-normal transition-all"
                 />
               </div>
               <div>
-                <label className="block text-[13px] md:text-[10px] font-black text-[#374151] tracking-wider uppercase mb-1.5">Mobile Number (WhatsApp)</label>
+                <label className="block text-[10px] font-black text-gray-600 tracking-wider uppercase mb-1.5">
+                  MOBILE NUMBER (WHATSAPP)
+                </label>
                 <input
                   type="text"
                   value={customer.phone}
                   onChange={e => setCustomer({...customer, phone: e.target.value})}
                   placeholder="Enter 10-digit number"
-                  className="w-full h-12 px-4 bg-white border border-[#D1FAE5]/60 rounded-xl focus:outline-none focus:border-[#047857] text-[16px] md:text-[13px] font-bold text-[#111111] placeholder:text-gray-400 placeholder:font-medium"
+                  className="w-full h-11 px-4 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#b47128] focus:ring-1 focus:ring-[#b47128] text-sm font-semibold text-gray-900 placeholder:text-gray-400 placeholder:font-normal transition-all"
                 />
               </div>
             </div>
           </div>
 
           {/* Order Items Card */}
-          <div className="bg-white rounded-2xl border border-[#D1FAE5]/40 shadow-sm flex-1 flex flex-col min-h-[400px]">
-            {/* Card Header */}
-            <div className="flex flex-col gap-4 p-4 md:p-5 border-b border-[#D1FAE5]/40">
-              <h3 className="text-[18px] md:text-[14px] font-black text-[#111111] flex items-center gap-2">
-                <Receipt size={16} className="text-[#047857]" />
+          <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs flex-1 flex flex-col min-h-[380px]">
+            {/* Card Header & Controls */}
+            <div className="flex flex-col gap-3.5 p-4 sm:p-5 border-b border-gray-100">
+              <h3 className="text-base font-extrabold text-gray-900 flex items-center gap-2">
+                <Receipt size={18} className="text-[#b47128]" />
                 Order Items
               </h3>
-              <div className="grid grid-cols-2 md:flex md:items-stretch gap-2">
+
+              {/* Action Buttons Row */}
+              <div className="space-y-2.5">
+                <div className="grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={clearAll}
+                    className="h-11 px-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-[11px] font-black tracking-wider uppercase transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <Trash2 size={14} className="text-gray-500" />
+                    CLEAR ORDER
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAddProductOpen(true)}
+                    className="h-11 px-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-[11px] font-black tracking-wider uppercase transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <Plus size={14} className="text-gray-500" />
+                    ADD TO CATALOG
+                  </button>
+                </div>
+
+                {/* Add Custom Item Button */}
                 <button
-                  onClick={clearAll}
-                  className="min-h-[44px] w-full md:w-auto px-3 py-2 rounded-lg border border-[#D1FAE5]/60 text-[12px] md:text-[11px] font-black text-[#374151] hover:bg-[#F9FAFB] transition-colors flex items-center justify-center gap-1.5 text-center md:flex-1"
-                >
-                  <Trash2 size={12} /> CLEAR ORDER
-                </button>
-                <button
-                  onClick={() => setCatalogOpen(true)}
-                  className="min-h-[44px] w-full md:w-auto px-3 py-2 rounded-lg border border-[#047857] text-[#047857] text-[12px] md:text-[11px] font-black hover:bg-[#047857]/5 transition-colors flex items-center justify-center gap-1.5 text-center md:flex-1"
-                >
-                  <Search size={12} /> SEARCH CATALOG
-                </button>
-                <button
-                  onClick={() => setAddProductOpen(true)}
-                  className="min-h-[44px] w-full md:w-auto px-3 py-2 rounded-lg bg-[#047857] text-white text-[12px] md:text-[11px] font-black hover:bg-[#065F46] transition-colors flex items-center justify-center gap-1.5 text-center md:flex-1"
-                >
-                  <Plus size={12} /> ADD TO CATALOG
-                </button>
-                <button
+                  type="button"
                   onClick={() => setCustomItemOpen(open => !open)}
-                  className="min-h-[44px] w-full md:w-auto px-3 py-2 rounded-lg border border-[#047857] text-[#047857] text-[12px] md:text-[11px] font-black hover:bg-[#047857]/5 transition-colors flex items-center justify-center gap-1.5 text-center md:flex-1"
+                  className="w-full h-11 px-4 rounded-xl bg-[#c08436] hover:bg-[#a66f28] text-white text-[11px] font-black tracking-wider uppercase transition-colors flex items-center justify-center gap-2 shadow-xs"
                 >
-                  + ADD CUSTOM ITEM
+                  <Plus size={14} />
+                  ADD CUSTOM ITEM
+                </button>
+
+                {/* Custom Product Description Input */}
+                {customItemOpen ? (
+                  <form
+                    onSubmit={e => { e.preventDefault(); addManualItem() }}
+                    className="p-3 bg-amber-50/40 rounded-xl border border-amber-200/60 space-y-2.5"
+                  >
+                    <input
+                      autoFocus
+                      required
+                      value={manualName}
+                      onChange={e => setManualName(e.target.value)}
+                      placeholder="Type custom product description..."
+                      className="w-full h-11 px-4 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-900 placeholder:text-gray-400 placeholder:font-normal focus:outline-none focus:border-[#b47128]"
+                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={manualPrice}
+                        onChange={e => setManualPrice(e.target.value)}
+                        placeholder="Price (optional)"
+                        className="flex-1 h-10 px-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:border-[#b47128]"
+                      />
+                      <button
+                        type="submit"
+                        className="h-10 px-4 bg-[#c08436] hover:bg-[#a66f28] text-white text-[11px] font-black rounded-xl uppercase tracking-wider"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <input
+                    type="text"
+                    onClick={() => setCustomItemOpen(true)}
+                    readOnly
+                    placeholder="Type custom product description..."
+                    className="w-full h-11 px-4 bg-white border border-gray-200 rounded-xl text-sm font-normal text-gray-900 placeholder:text-gray-400 cursor-pointer hover:border-gray-300 transition-colors"
+                  />
+                )}
+
+                {/* Catalog Button */}
+                <button
+                  type="button"
+                  onClick={() => setCatalogOpen(true)}
+                  className="w-full h-11 px-4 rounded-xl bg-[#fdf8f0] border border-[#f3e3ca] text-[#9a6224] hover:bg-[#fbf1e2] text-[11px] font-black tracking-wider uppercase transition-colors flex items-center justify-center gap-2"
+                >
+                  <List size={16} />
+                  CATALOG
                 </button>
               </div>
-              {customItemOpen && (
-                <form
-                  onSubmit={e => { e.preventDefault(); addManualItem() }}
-                  className="mt-3 grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_150px_auto] gap-2 rounded-xl border border-[#D1FAE5]/60 bg-[#FFFDFC] p-3"
-                >
-                  <input
-                    autoFocus
-                    required
-                    value={manualName}
-                    onChange={e => setManualName(e.target.value)}
-                    placeholder="Product name"
-                    className="h-10 rounded-lg border border-[#D1FAE5]/70 bg-white px-3 text-[12px] font-bold text-[#111111] outline-none focus:border-[#047857]"
-                  />
-                  <input
-                    step="0.01"
-                    type="number"
-                    value={manualPrice}
-                    onChange={e => setManualPrice(e.target.value)}
-                    placeholder="Price (RM, optional)"
-                    className="h-10 rounded-lg border border-[#D1FAE5]/70 bg-white px-3 text-[12px] font-bold text-[#111111] outline-none focus:border-[#047857]"
-                  />
-                  <button
-                    type="submit"
-                    className="h-10 rounded-lg bg-[#047857] px-4 text-[11px] font-black text-white hover:bg-[#065F46]"
-                  >
-                    ADD ITEM
-                  </button>
-                </form>
-              )}
             </div>
 
             {/* Table Header */}
